@@ -48,12 +48,10 @@ export default class Tron {
 
   async transferToMaster(addr, amount) {
     const { address } = await this.address.getMaster()
-    const shortid = helpers.shortid();
-    logger.info(`[${shortid}]`, 'Transferring', amount, 'to Master address', address, 'from', addr)
+    logger.info('Transferring', amount, 'to Master address', address, 'from', addr)
     const result = await this.transferTrx(addr, address, amount);
-    result.shortid = shortid;
     return result
-  }
+ }
   async sweepToMaster(addr) {
     const { balance } = await this.getBalance(addr);
     const r = await this.transferToMaster(addr, balance)
@@ -94,7 +92,7 @@ export default class Tron {
       }
     }
   }
-  async transferTrx(from, to, amount, shortyid) {
+  async transferTrx(from, to, amount) {
     const priv = await this.address.getPriv(from);
     if (priv) {
       const r = await tronWeb.trx.sendTransaction(to, amount, priv)
@@ -141,7 +139,9 @@ export default class Tron {
         await this.waitFor(10000)
         this.notify(txInfo.fromAddress, txInfo.toAddress, txInfo.txid, txInfo.amountTrx)
         const r = await this.transferToMaster(txInfo.toAddress, txInfo.amountSun);
-        logger.info(`[${r.shortid}]`, 'Successfully sent:', r.txid)
+        if(r && r.txid) {
+            logger.info('Successfully sent:', r.txid)
+        }
       } catch (e) {
         logger.error(e)
         this.txCache.add(txInfo.txid);

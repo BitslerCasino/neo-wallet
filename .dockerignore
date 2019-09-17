@@ -1,0 +1,6 @@
+db.json
+.env
+.cache
+.theia
+datas/
+logs
