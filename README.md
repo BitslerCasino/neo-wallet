@@ -2,7 +2,7 @@
 Simple tron wallet that is compatible with TronWalletPlay
 
 ### Auto Installer:
-`sudo bash -c "$(curl -L https://github.com/bitslercasino/trx/releases/download/v1.0.0/bitsler_trx.sh)"`
+`sudo bash -c "$(curl -L https://github.com/BitslerCasino/tronlet/releases/download/v1.0.0/bitsler_trx.sh)"`
 
 Check Logs to view your withdrawal url
 
