@@ -1,0 +1,43 @@
+{
+  "name": "@uniibu/tronlet",
+  "version": "1.0.0",
+  "description": "simple tron wallet",
+  "main": "main.js",
+  "repository": "git@github.com:BitslerCasino/tronlet.git",
+  "author": "unibtc <unibtc@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "pm2 flush && pm2 start main.js --name trx --node-args=\"-r esm -r dotenv/config\" && pm2 logs trx",
+    "stop": "pm2 stop trx && pm2 delete trx",
+    "restart": "yarn stop && pm2 flush && yarn start",
+    "release:git": "github-release release --user uniibu --repo tronlet --tag v1.0.0 --name \"v1.0.0\" --description \"trx wallet release\"",
+    "release:upload": "github-release upload --user uniibu  --repo tronlet --tag v1.0.0 --name \"bitsler_trx.sh\" --file bitsler_trx.sh",
+    "release:now": "yarn release:git && yarn release:upload"
+  },
+  "dependencies": {
+    "@bitsler/tron-address": "^1.0.0-rc1",
+    "@unibtc/circularqueue": "^1.0.0",
+    "app-module-path": "^2.2.0",
+    "commander": "^3.0.1",
+    "dotenv": "^8.1.0",
+    "envalid": "^5.0.0",
+    "fs-extra": "^8.1.0",
+    "koa": "^2.8.1",
+    "koa-bodyparser": "^4.2.1",
+    "koa-bouncer": "^6.0.4",
+    "koa-router": "^7.4.0",
+    "level": "^5.0.1",
+    "lodash": "^4.17.15",
+    "lowdb": "^1.0.0",
+    "p-queue": "^6.1.1",
+    "phin": "^3.4.0",
+    "queuing": "^1.2.0",
+    "trongrid": "^1.2.2",
+    "tronweb": "^2.7.1",
+    "winston": "^3.2.1",
+    "winston-daily-rotate-file": "^4.1.0"
+  },
+  "devDependencies": {
+    "esm": "^3.2.25"
+  }
+}

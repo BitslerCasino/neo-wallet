@@ -59,3 +59,10 @@ typings/
 
 # next.js build output
 .next
+
+datas/*
+logs
+db.json
+test.js
+.theia
+.cache

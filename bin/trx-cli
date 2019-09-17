@@ -1,0 +1,134 @@
+#!/usr/bin/env node
+
+const program = require('commander');
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
+const p = require('phin');
+const { exec } = require('child_process');
+
+const pkgjson = require(path.resolve(__dirname, '../package.json'));
+const {settings} = require(path.resolve(__dirname, '../db.json'))
+const secret = settings.secret;
+const rootPath = path.resolve(__dirname, '../')
+
+const reqLocal = async (route, data) => {
+  try {
+    let uri = `http://localhost:${process.env.PORT}/${route}?key=${secret}`;
+    if (data) {
+      uri += `&${data}`;
+    }
+    const payload = {
+      url: uri,
+      method: 'get',
+      parse: 'json'
+    };
+    return await p(payload);
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+program
+  .version(pkgjson.version)
+  .description(`TRON Wallet CLI v${pkgjson.version}`);
+
+program
+  .command('getBalance')
+  .description('Get current balance of master address')
+  .action(async () => {
+    const r = await reqLocal('balance');
+    if (r.body.success) {
+      console.log(`${r.body.balance.value} ${r.body.balance.currency}`);
+    } else {
+      console.log('Internal Error');
+    }
+  });
+program
+  .command('getInfo')
+  .description('Get current balance of master address')
+  .action(async () => {
+    const r = await reqLocal('getinfo');
+    if (r.body.success) {
+      console.log(JSON.stringify(r.body.data,null,2));
+    } else {
+      console.log('Internal Error');
+    }
+  });
+program
+  .command('sweep')
+  .description('Get current balance of master address')
+  .action(async (address) => {
+    const r = await reqLocal('sweep', `address=${address}`);
+    if (r.body.success) {
+      console.log(JSON.stringify(r.body.data,null,2));
+    } else {
+      console.log('Internal Error');
+    }
+  });
+program
+  .command('validateAddress <address>')
+  .description('Validates if an address format is correct and active')
+  .action(async address => {
+    const r = await reqLocal('validate', `address=${address}`);
+    if (r.body.success) {
+      console.log('Address is valid and active');
+    } else {
+      console.log('Invalid or inactive address');
+    }
+  });
+program
+  .command('getNewAddress')
+  .description('Validates if an address format is correct and active')
+  .action(async () => {
+    const r = await reqLocal('getnewaddress');
+    if (r.body.success) {
+      console.log(r.body.data);
+    } else {
+      console.log('Invalid or inactive address');
+    }
+  });
+  program
+  .command('freeze')
+  .description('Freezes trx coins to gain bandwidth')
+  .action(async (amount) => {
+    const r = await reqLocal('freeze',`amount=${amount}`);
+    if (r.body.success) {
+      console.log(r.body.data);
+    } else {
+      console.log('Invalid or inactive address');
+    }
+  });
+   program.command('unfreeze')
+  .description('unFreezes trx coins to gain bandwidth')
+  .action(async () => {
+    const r = await reqLocal('unfreeze');
+    if (r.body.success) {
+      console.log(r.body.data);
+    } else {
+      console.log('Invalid or inactive address');
+    }
+  });
+  program.command('stop')
+  .description('Gracefully stops the eos node')
+  .action(async () => {
+    exec('yarn stop', { cwd: rootPath }, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return;
+      }
+      console.log(`stdout: ${stdout}`);
+      console.log(`stderr: ${stderr}`);
+    });
+  });
+
+if (!process.argv.slice(2).length) {
+  program.outputHelp();
+}
+
+program
+  .command('*')
+  .action(() => {
+    console.error('Invalid command: %s\nSee --help for a list of available commands.', program.args[0]);
+    process.exit(1);
+  });
+program.parse(process.argv);
