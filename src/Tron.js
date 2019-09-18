@@ -113,6 +113,7 @@ export default class Tron {
     logger.info('Transaction found', txid, amount, 'from', from)
     this.txCache.add(txid);
     const payload = {}
+    payload.hash = txid;
     payload.amount = amount;
     payload.token = 'TRX';
     payload.from = from;
