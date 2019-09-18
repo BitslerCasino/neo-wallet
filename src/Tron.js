@@ -259,7 +259,7 @@ export default class Tron {
     try {
       const size = await this.address.lastIndex()
       let addresses = [];
-      for (let i = 0; i < size; i++) {
+      for (let i = 0; i <= size; i++) {
         const address = await this.address.getAddress(i)
         const pl = { address };
         if (withBalance) {
