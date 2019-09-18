@@ -41,13 +41,11 @@ function apiStart(tron) {
   });
 
   router.use(async (ctx, next) => {
-    if (ctx.request.url !== '/getinfo') {
-      const secretKey = getSettings('secret');
-      ctx.validateQuery('key').required('Missing key').isString().trim();
-      ctx.check(secretKey === ctx.vals.key, 'Forbidden')
-      ctx.request.query.key = helpers.hideKey(ctx.request.query.key)
-      delete ctx.vals.key
-    }
+    const secretKey = getSettings('secret');
+    ctx.validateQuery('key').required('Missing key').isString().trim();
+    ctx.check(secretKey === ctx.vals.key, 'Forbidden')
+    ctx.request.query.key = helpers.hideKey(ctx.request.query.key)
+    delete ctx.vals.key
     await next();
   });
   router.get('/getinfo', async ctx => {

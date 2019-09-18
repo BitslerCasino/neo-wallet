@@ -16,6 +16,7 @@ die () {
 echo "Installing TRX Docker"
 
 mkdir -p $HOME/.trx/logs
+mkdir -p $HOME/.trx/datas
 
 echo "Initial TRX Configuration"
 
@@ -50,6 +51,7 @@ docker run -v trx-data:/usr/src/app --name=trx-node -d \
       -p 8844:8844 \
       -v $HOME/.trx/trx.env:/usr/src/app/.env \
       -v $HOME/.trx/db.json:/usr/src/app/db.json \
+      -v $HOME/.trx/datas:/usr/src/app/datas \
       -v $HOME/.trx/logs:/usr/src/app/logs \
       unibtc/trx:latest
 
@@ -69,6 +71,7 @@ echo "Updating trx to $VERSION"
 sudo docker stop trx-node || true
 sudo docker rm trx-node || true
 sudo docker pull unibtc/trx:$VERSION
+sudo docker volume rm trx-data
 docker run -v trx-data:/usr/src/app --name=trx-node -d \
       -p 8844:8844 \
       -v $HOME/.trx/trx.env:/usr/src/app/.env \

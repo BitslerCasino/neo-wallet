@@ -46,12 +46,20 @@ export default class Tron {
     return payload;
   }
 
-  async transferToMaster(from, amount) {
+  async transferToMaster(from, sweep = false) {
     const { address } = await this.address.getMaster();
     const privateKey = await this.address.getPriv(from);
-    logger.info('Transferring', amount, 'to Master address', address, 'from', from)
-    const result = await this.sendTrx(address, amount, from, privateKey);
-    return result
+    const {balance} = await this.getBalance(from);
+    const amount = this.tronWeb.fromSun(balance) - 0.1;
+    if(sweep || amount > 0.0001) {
+      logger.info('Transferring', amount, 'to Master address', address, 'from', from)
+      const result = await this.sendTrx(address, amount, from, privateKey);
+      return result
+    }else {
+      logger.info('Not enough balance(balance-0.1) to transfer', amount);
+      logger.info('Manually sweep the balance if you want to transfer');
+      return false
+    }
   }
 
   async sendTrx(to, amount, from, privateKey) {
