@@ -27,13 +27,16 @@ function apiStart(tron) {
     try {
       await next();
     } catch (err) {
-      logger.error(err.stack || err.message);
+      logger.error(err.stack || err.message || err);
       if (err instanceof bouncer.ValidationError) {
         ctx.status = err.message === 'Forbidden' ? 403 : 400;
         ctx.body = { success: false, error: err.message };
         return;
       } else {
         ctx.status = err.status || 400;
+        if(err.json) {
+          err.message = err.json.message
+        }
         ctx.body = { success: false, error: err.message };
         return;
       }

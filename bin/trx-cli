@@ -122,7 +122,7 @@ program
     if (r.body.success) {
       console.log('Processed:',r.body.txid);
     } else {
-      console.log('Invalid or inactive address');
+      console.log(r.body.error);
     }
   });
   program.command('stop')

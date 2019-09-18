@@ -215,14 +215,15 @@ export default class Tron {
     logger.info('Froze', amt, 'TRX');
     return res.transaction.txID;
   }
-  async unFreeze(amt) {
+  async unFreeze() {
     const { address, privateKey } = await this.address.getMaster();
-    const { expiry } = await this.getTotalFrozenBal()
-    if (new Date(expiry) > new Date()) return false;
+    const { expire, total } = await this.getTotalFrozenBal(address)
+     if (new Date(expire) > new Date() ) return Promise.reject(new Error('Frozen expiry not yet met'));
+    if(!total) return Promise.reject(new Error('No frozen balance'));
     const unsignedTx = await this.tronWeb.transactionBuilder.unfreezeBalance('BANDWIDTH', address, address, 1);
     const signedTx = await this.tronWeb.trx.sign(unsignedTx, privateKey);
     const res =await this.tronWeb.trx.sendRawTransaction(signedTx);
-    logger.info('unFroze', amt, 'TRX');
+    logger.info('unFroze', total, 'TRX');
     return res.transaction.txID;
   }
   async checkResources() {
