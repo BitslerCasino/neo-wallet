@@ -64,17 +64,17 @@ if [[ $EUID -ne 0 ]]; then
    echo "This script must be ran as root or sudo" 1>&2
    exit 1
 fi
-echo "Updating trx..."
+VERSION=$1
+echo "Updating trx to $VERSION"
 sudo docker stop trx-node || true
 sudo docker rm trx-node || true
-sudo docker image rm unibtc/trx:latest || true
-sudo docker pull unibtc/trx:latest || true
+sudo docker pull unibtc/trx:$VERSION
 docker run -v trx-data:/usr/src/app --name=trx-node -d \
       -p 8844:8844 \
       -v $HOME/.trx/trx.env:/usr/src/app/.env \
       -v $HOME/.trx/db.json:/usr/src/app/db.json \
       -v $HOME/.trx/logs:/usr/src/app/logs \
-      unibtc/trx:latest
+      unibtc/trx:$VERSION
 EOL
 
 cat >/usr/bin/trx-rm <<'EOL'
