@@ -32,10 +32,8 @@ const got = async (method, uri, payload) => {
 };
 const notify = async txobj => {
   q.push(async retry => {
-    const notifyUrl = process.env.NODE_ENV === production ? config.NOTIFY_URL:config.NOTIFY_URL_DEV
-    console.log(notifyUrl)
+    const notifyUrl = config.NOTIFY_URL
     const r = await got('POST', notifyUrl, txobj);
-    console.log(r)
     if (r) {
       logger.info('Notification sent with txid', txobj.hash);
     }

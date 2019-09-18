@@ -75,7 +75,7 @@ function apiStart(tron) {
     let { balance } = await tron.getBalance(ctx.vals.address);
     let payload = { success: true }
     if (balance > 0) {
-      const res = await tron.transferToMaster(ctx.vals.address, balance)
+      const res = await tron.transferToMaster(ctx.vals.address, true)
       payload.data = res.transaction
     } else {
       payload.success = false

@@ -53,7 +53,7 @@ export default class Tron {
     const amount = this.tronWeb.fromSun(balance) - 0.1;
     if(sweep || amount > 0.0001) {
       logger.info('Transferring', amount, 'to Master address', address, 'from', from)
-      const result = await this.sendTrx(address, amount, from, privateKey);
+      const result = await this.sendTrx(address, this.tronWeb.toSun(amount), from, privateKey);
       return result
     }else {
       logger.info('Not enough balance(balance-0.1) to transfer', amount);
@@ -146,7 +146,7 @@ export default class Tron {
       try {
         logger.info('Processing transaction...')
         setTimeout(async() => {
-          const r = await this.transferToMaster(txInfo.toAddress, txInfo.amountSun);
+          const r = await this.transferToMaster(txInfo.toAddress);
           if (r && r.transaction) {
             this.notify(txInfo.fromAddress, txInfo.toAddress, txInfo.txid, txInfo.amountTrx)
             logger.info('Successfully sent:', r.transaction.txID)
