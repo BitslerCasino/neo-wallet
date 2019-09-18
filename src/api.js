@@ -92,7 +92,7 @@ function apiStart(tron) {
       tron.voteSr()
     })
   });
-  router.post('/unfreezebandwidth', async ctx => {
+  router.get('/unfreezebandwidth', async ctx => {
     logger.info('RPC /unfreezebandwidth was called:', ctx.request.query);
     const res = await tron.unFreeze()
     ctx.body = { success: true, txid: res }

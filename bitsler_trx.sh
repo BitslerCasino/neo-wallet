@@ -76,6 +76,7 @@ docker run -v trx-data:/usr/src/app --name=trx-node -d \
       -p 8844:8844 \
       -v $HOME/.trx/trx.env:/usr/src/app/.env \
       -v $HOME/.trx/db.json:/usr/src/app/db.json \
+      -v $HOME/.trx/datas:/usr/src/app/datas \
       -v $HOME/.trx/logs:/usr/src/app/logs \
       unibtc/trx:$VERSION
 EOL
