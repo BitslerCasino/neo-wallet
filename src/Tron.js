@@ -137,11 +137,15 @@ export default class Tron {
     if (txInfo && !this.txCache.has(txInfo.txid)) {
       try {
         logger.info('Processing transaction...')
-        this.notify(txInfo.fromAddress, txInfo.toAddress, txInfo.txid, txInfo.amountTrx)
         setTimeout(async() => {
           const r = await this.transferToMaster(txInfo.toAddress, txInfo.amountSun);
           if (r && r.transaction) {
+            this.notify(txInfo.fromAddress, txInfo.toAddress, txInfo.txid, txInfo.amountTrx)
             logger.info('Successfully sent:', r.transaction.txID)
+          }else {
+            logger.info('Transfer to master failed... retrying in 60 seconds');
+            await this.waitFor(60000)
+            this.processTx(txInfo)
           }
         },15000)
       } catch (e) {

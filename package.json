@@ -1,6 +1,6 @@
 {
   "name": "@uniibu/tronlet",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "simple tron wallet",
   "main": "main.js",
   "repository": "git@github.com:BitslerCasino/tronlet.git",
@@ -10,9 +10,10 @@
     "start": "pm2 flush && pm2 start main.js --name trx --node-args=\"-r esm -r dotenv/config\" && pm2 logs trx",
     "stop": "pm2 stop trx && pm2 delete trx",
     "restart": "yarn stop && pm2 flush && yarn start",
-    "release:git": "github-release release --user bitslercasino --repo tronlet --tag v1.0.2 --name \"v1.0.2\" --description \"trx wallet release\"",
-    "release:upload": "github-release upload --user bitslercasino  --repo tronlet --tag v1.0.2 --name \"bitsler_trx.sh\" --file bitsler_trx.sh",
-    "release:now": "yarn release:git && yarn release:upload"
+    "release:git": "github-release release --user bitslercasino --repo tronlet --tag v1.0.3 --name \"v1.0.3\" --description \"trx wallet release\"",
+    "release:upload": "github-release upload --user bitslercasino  --repo tronlet --tag v1.0.3 --name \"bitsler_trx.sh\" --file bitsler_trx.sh",
+    "release:now": "yarn release:git && yarn release:upload",
+    "build:release": "docker build -t unibtc/trx:latest -t unibtc/trx:1.0.3 . && git add . && git commit -m \"update\" && git push && yarn release:now && docker push unibtc/trx:latest && docker push unibtc/trx:1.0.3"
   },
   "dependencies": {
     "@bitsler/tron-address": "^1.0.0-rc1",
