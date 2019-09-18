@@ -74,20 +74,43 @@ function apiStart(tron) {
   router.get('/sweep', async ctx => {
     logger.info('RPC /sweep was called:', ctx.request.query);
     ctx.validateQuery('address').required('Missing address').isString().trim();
-    const res = await tron.sweepToMaster(ctx.vals.address)
-    ctx.body = { success: true, data: res.transaction }
+    let { balance } = await tron.getBalance(ctx.vals.address);
+    let payload = { success: true }
+    if (balance > 0) {
+      const res = await tron.transferToMaster(ctx.vals.address, balance)
+      payload.data = res.transaction
+    } else {
+      payload.success = false
+      payload.error = 'not enough balance'
+    }
+    ctx.body = payload
   });
   router.post('/freezebandwidth', async ctx => {
     logger.info('RPC /freezebandwidth was called:', ctx.request.query);
     ctx.validateBody('amount').required('Missing amount').toDecimal('Invalid amount').tap(n => helpers.truncateTwo(n))
-    const res = await tron.freeze(amount)
-    ctx.body = { success: true, data: res}
+    const res = await tron.freeze(ctx.vals.amount)
+    ctx.body = { success: true, txid: res }
+    tron.waitFor(60000).then(() => {
+      tron.voteSr()
+    })
   });
   router.post('/unfreezebandwidth', async ctx => {
     logger.info('RPC /unfreezebandwidth was called:', ctx.request.query);
     const res = await tron.unFreeze()
-    ctx.body = { success: true, data: res}
+    ctx.body = { success: true, txid: res }
   });
+  router.get('/getalladdress', async ctx => {
+    logger.info('RPC /getalladdress was called:', ctx.request.query);
+    ctx.validateQuery('balance').optional().toInt();
+    let options = { withBalance: false };
+    if (ctx.vals.balance && ctx.vals.balance === 1) {
+      options.withBalance = true
+    }
+    const res = await tron.getAllAddress(options);
+    if (res) {
+      ctx.body = { success: true, addresses: res };
+    }
+  })
   router.post('/withdraw', async (ctx) => {
     logger.info('RPC /withdraw was called:', ctx.request.query, ctx.request.body);
     ctx.validateBody('amount').required('Missing amount').toDecimal('Invalid amount').tap(n => helpers.truncateTwo(n))
@@ -113,6 +136,7 @@ function apiStart(tron) {
         ctx.body = { success, txid: result.transaction_id };
       }
       ctx.body = { success, txid: result.transaction_id };
+      logger.info('txid:', result.transaction_id)
     }
   });
   app.use(router.routes());

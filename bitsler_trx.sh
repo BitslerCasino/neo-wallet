@@ -65,9 +65,10 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 echo "Updating trx..."
-sudo docker stop trx-node
-sudo docker rm trx-node
-sudo docker pull unibtc/trx:latest
+sudo docker stop trx-node || true
+sudo docker rm trx-node || true
+sudo docker image rm unibtc/trx:latest || true
+sudo docker pull unibtc/trx:latest || true
 docker run -v trx-data:/usr/src/app --name=trx-node -d \
       -p 8844:8844 \
       -v $HOME/.trx/trx.env:/usr/src/app/.env \
@@ -89,6 +90,7 @@ function uninstall() {
   sudo docker rm trx-node
   sudo rm -rf ~/docker/volumes/trx-data ~/.trx /usr/bin/trx-cli
   sudo docker volume rm trx-data
+  sudo docker image rm unibtc/trx:latest
   echo "Successfully removed"
   sudo rm -- "$0"
 }
@@ -107,4 +109,4 @@ echo "==========================="
 echo "==========================="
 echo "Installation Complete"
 echo
-echo "RUN trx-cli getInfo"
+echo "RUN trx-cli getinfo"

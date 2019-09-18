@@ -2,5 +2,6 @@ db.json
 .env
 .cache
 .theia
-datas/
+datas
 logs
+bitsler_trx.sh

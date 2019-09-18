@@ -10,19 +10,20 @@ const pkgjson = require(path.resolve(__dirname, '../package.json'));
 const {settings} = require(path.resolve(__dirname, '../db.json'))
 const secret = settings.secret;
 const rootPath = path.resolve(__dirname, '../')
-
-const reqLocal = async (route, data) => {
+const request = require(path.resolve(__dirname, 'request.js'))
+const reqLocal = async (route, data, method = 'get') => {
   try {
-    let uri = `http://localhost:${process.env.PORT}/${route}?key=${secret}`;
-    if (data) {
-      uri += `&${data}`;
+    let uri = `http://localhost:${process.env.PORT}/${route}`;
+    let query = {key:secret};
+    if(method === 'post') {
+        return await request.poster(uri,query,data)
+    }else {
+        if(data){
+            Object.assign(query,data)
+        }
+        return await request.getter(uri,query)
     }
-    const payload = {
-      url: uri,
-      method: 'get',
-      parse: 'json'
-    };
-    return await p(payload);
+
   } catch (e) {
     console.error(e);
   }
@@ -34,6 +35,7 @@ program
 
 program
   .command('getBalance')
+  .alias('getbalance')
   .description('Get current balance of master address')
   .action(async () => {
     const r = await reqLocal('balance');
@@ -45,6 +47,7 @@ program
   });
 program
   .command('getInfo')
+  .alias('getinfo')
   .description('Get current balance of master address')
   .action(async () => {
     const r = await reqLocal('getinfo');
@@ -55,10 +58,10 @@ program
     }
   });
 program
-  .command('sweep')
+  .command('sweep <address>')
   .description('Get current balance of master address')
   .action(async (address) => {
-    const r = await reqLocal('sweep', `address=${address}`);
+    const r = await reqLocal('sweep', {address});
     if (r.body.success) {
       console.log(JSON.stringify(r.body.data,null,2));
     } else {
@@ -67,9 +70,10 @@ program
   });
 program
   .command('validateAddress <address>')
+  .alias('validateaddress')
   .description('Validates if an address format is correct and active')
   .action(async address => {
-    const r = await reqLocal('validate', `address=${address}`);
+    const r = await reqLocal('validate', {address});
     if (r.body.success) {
       console.log('Address is valid and active');
     } else {
@@ -78,6 +82,7 @@ program
   });
 program
   .command('getNewAddress')
+  .alias('getnewaddress')
   .description('Validates if an address format is correct and active')
   .action(async () => {
     const r = await reqLocal('getnewaddress');
@@ -88,22 +93,34 @@ program
     }
   });
   program
-  .command('freeze')
-  .description('Freezes trx coins to gain bandwidth')
-  .action(async (amount) => {
-    const r = await reqLocal('freeze',`amount=${amount}`);
+  .command('getAllAddress <balance>')
+  .alias('getalladdress')
+  .description('Gets all addresses')
+  .action(async (balance) => {
+    const r = await reqLocal('getalladdress',{balance});
     if (r.body.success) {
-      console.log(r.body.data);
+      console.log(r.body.addresses);
     } else {
       console.log('Invalid or inactive address');
+    }
+  });
+  program
+  .command('freeze <amount>')
+  .description('Freezes trx coins to gain bandwidth')
+  .action(async (amount) => {
+    const r = await reqLocal('freezebandwidth',JSON.stringify({amount}), 'post');
+    if (r.body.success) {
+      console.log('Processed',r.body.txid);
+    } else {
+      console.log(r.body.error);
     }
   });
    program.command('unfreeze')
   .description('unFreezes trx coins to gain bandwidth')
   .action(async () => {
-    const r = await reqLocal('unfreeze');
+    const r = await reqLocal('unfreezebandwidth');
     if (r.body.success) {
-      console.log(r.body.data);
+      console.log('Processed:',r.body.txid);
     } else {
       console.log('Invalid or inactive address');
     }
