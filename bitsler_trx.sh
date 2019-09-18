@@ -72,6 +72,7 @@ sudo docker stop trx-node || true
 sudo docker rm trx-node || true
 sudo docker pull unibtc/trx:$VERSION
 sudo docker volume rm trx-data
+sudo docker volume create --name=trx-data
 docker run -v trx-data:/usr/src/app --name=trx-node -d \
       -p 8844:8844 \
       -v $HOME/.trx/trx.env:/usr/src/app/.env \
