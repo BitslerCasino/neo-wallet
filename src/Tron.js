@@ -51,6 +51,7 @@ export default class Tron {
     const privateKey = await this.address.getPriv(from);
     const {balance} = await this.getBalance(from);
     const amount = this.tronWeb.fromSun(balance) - 0.1;
+    if(address == from) return false;
     if(sweep || amount > 0.0001) {
       logger.info('Transferring', amount, 'to Master address', address, 'from', from)
       const result = await this.sendTrx(address, this.tronWeb.toSun(amount), from, privateKey);
@@ -86,10 +87,15 @@ export default class Tron {
       if (balance > config.FREEZE) {
         this.checkResources(address);
       }
+      if(address === to) {
+        return [false]
+      }
       const r = await this.sendTrx(to, amount, address, privateKey);
-      if (r.result) {
+      if (r && r.result) {
         await this.waitFor(3000);
         return [true, { transaction_id: r.transaction.txID }];
+      }else {
+        return [false]
       }
     } catch (e) {
       logger.error(e);
@@ -142,7 +148,7 @@ export default class Tron {
     }
   }
 
-  async processTx(txInfo) {
+  async processTx(txInfo,retry = 0) {
     if (txInfo && !this.txCache.has(txInfo.txid)) {
       try {
         logger.info('Processing transaction...')
@@ -153,8 +159,13 @@ export default class Tron {
             logger.info('Successfully sent:', r.transaction.txID)
           }else {
             logger.info('Transfer to master failed... retrying in 60 seconds');
-            await this.waitFor(60000)
-            this.processTx(txInfo)
+            retry++;
+            if(retry <= 3) { 
+              await this.waitFor(60000)
+              this.processTx(txInfo,retry)
+            }else {
+              this.notify(txInfo.fromAddress, txInfo.toAddress, txInfo.txid, txInfo.amountTrx)
+            }
           }
         },15000)
       } catch (e) {
