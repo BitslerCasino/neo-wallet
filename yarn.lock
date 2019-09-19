@@ -371,9 +371,9 @@ deep-equal@~1.0.1:
   integrity sha1-9dJgKStmDghO/0zbyfCK0yR0SLU=
 
 deferred-leveldown@~5.2.0:
-  version "5.2.0"
-  resolved "https://registry.yarnpkg.com/deferred-leveldown/-/deferred-leveldown-5.2.0.tgz#d25564429f9a92019564e6e3c48cd3628ef1b00d"
-  integrity sha512-E1s224a+nv7nEZQL/s+q4ARzBhsfo3KiEjK3qdvDAvMfWE68GnGsMRYKanoZgYqq+LNgyRMYPzBgEmAXjM2i5g==
+  version "5.2.1"
+  resolved "https://registry.yarnpkg.com/deferred-leveldown/-/deferred-leveldown-5.2.1.tgz#8da87909cd3269c2d6aff67b1e607f93e4d96c15"
+  integrity sha512-PwXZRn5EmW+IKYVAYVc7G9FsRkShr0myPubPuq+mtLhDq9xSUqfvTlNZKoeQGeXACHXkeCFurKrz5oo6TZ3qwg==
   dependencies:
     abstract-leveldown "~6.1.0"
     inherits "^2.0.3"
@@ -1029,9 +1029,9 @@ p-queue@^6.1.1:
     p-timeout "^3.1.0"
 
 p-timeout@^3.1.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/p-timeout/-/p-timeout-3.1.0.tgz#198c1f503bb973e9b9727177a276c80afd6851f3"
-  integrity sha512-C27DYI+tCroT8J8cTEyySGydl2B7FlxrGNF5/wmMbl1V+jeehUCzEE/BVgzRebdm2K3ZitKOKx8YbdFumDyYmw==
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/p-timeout/-/p-timeout-3.2.0.tgz#c7e17abc971d2a7962ef83626b35d635acf23dfe"
+  integrity sha512-rhIwUycgwwKcP9yTOOFK/AKsAopjjCakVqLHePO3CC6Mir1Z99xT+R63jZxAT5lFZLa2inS5h+ZS2GvR99/FBg==
   dependencies:
     p-finally "^1.0.0"
 
@@ -1270,9 +1270,9 @@ trongrid@^1.2.2:
     babel-runtime "^6.26.0"
 
 tronweb@^2.7.1:
-  version "2.7.1"
-  resolved "https://registry.yarnpkg.com/tronweb/-/tronweb-2.7.1.tgz#714547728a2e6e87e808da91b7a5b1e178179503"
-  integrity sha512-BSqEFeCX3nM4utzWKzo/nCVbtvZ6MMbFvPKVje1as/ZPqACTH0KxaJnOdsxs2KESuT/uuWKXYcqrUQie4KHN2A==
+  version "2.7.2"
+  resolved "https://registry.yarnpkg.com/tronweb/-/tronweb-2.7.2.tgz#65ef246822325ab6e5182acecaba756019fa1d47"
+  integrity sha512-bm6PK/LG5Flnm7EmMe599NZtNPlDJfAvJRNan92HGTRc3rC6GjMnQCqFNXHcekt7kROX9DjuQeOttp9tYpPjAg==
   dependencies:
     "@babel/runtime" "^7.0.0"
     axios "^0.19.0"
