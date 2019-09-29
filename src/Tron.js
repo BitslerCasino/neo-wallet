@@ -160,7 +160,7 @@ export default class Tron {
           }else {
             logger.info('Transfer to master failed... retrying in 60 seconds');
             retry++;
-            if(retry <= 3) { 
+            if(retry <= 10) {
               await this.waitFor(60000)
               this.processTx(txInfo,retry)
             }else {
@@ -295,6 +295,7 @@ export default class Tron {
     }
   }
   async start() {
+    try {
     let block = getSettings('block');
     const latestBlock = await this.getLatestBlockNumber();
     if (!block) {
@@ -320,5 +321,9 @@ export default class Tron {
     }
     await this.waitFor(8000)
     this.start();
+    }catch(e) {
+      logger.error(e);
+      this.start();
+    }
   }
 }
