@@ -30,12 +30,12 @@ const got = async (method, uri, payload) => {
     return false;
   }
 };
-const notify = async txobj => {
+const notify = async (txobj,id) => {
   q.push(async retry => {
     const notifyUrl = config.NOTIFY_URL
     const r = await got('POST', notifyUrl, txobj);
     if (r) {
-      logger.info('Notification sent with txid', txobj.hash);
+      logger.info(`[${id}]Notification sent with txid`, txobj.hash, txobj.amount);
     }
     retry(!r);
   });

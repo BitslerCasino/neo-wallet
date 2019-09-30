@@ -11,6 +11,7 @@ import notifier from './notify';
 import logger from './logger';
 import helpers from './utils';
 import config from '../config/production';
+import Big from 'big.js';
 
 export default class Tron {
   static save() {
@@ -20,12 +21,14 @@ export default class Tron {
     this.txCache = txCache;
     this.address = addressManager;
     this.txCache.load();
+    this.id = 1;
     this.tronWeb = new TronWeb({
       fullNode: config.HOST,
       solidityNode: config.HOST,
       eventServer: config.HOST
     });
     this.tronWeb.setDefaultBlock('earliest');
+    this.sweepTimer();
   }
 
   waitFor(ms) {
@@ -45,18 +48,33 @@ export default class Tron {
     }
     return payload;
   }
-
+  async sweepTimer() {
+    await this.waitFor(30000);
+    const res = await this.getAllAddress({ withBalance: true });
+    const tasks = []
+    for (const addr of res) {
+      if (addr.balance > 0.1) {
+        logger.info('Sweeping', Big(addr.balance).minus(0.1), 'from', addr.address);
+        tasks.push(this.transferToMaster(addr.address, true))
+      }
+    }
+    await Promise.all(tasks);
+    await this.waitFor(30000);
+    this.sweepTimer()
+  }
   async transferToMaster(from, sweep = false) {
     const { address } = await this.address.getMaster();
     const privateKey = await this.address.getPriv(from);
-    const {balance} = await this.getBalance(from);
-    const amount = this.tronWeb.fromSun(balance) - 0.1;
-    if(address == from) return false;
-    if(sweep || amount > 0.0001) {
-      logger.info('Transferring', amount, 'to Master address', address, 'from', from)
+    let { balance } = await this.getBalance(from);
+    balance = this.tronWeb.fromSun(balance)
+    const amount = parseFloat(Big(balance).minus(0.1));
+    if (address == from) return false;
+    if (sweep || amount > 0.0001) {
+      logger.info(`Transferring`, amount, 'to Master address', address, 'from', from)
       const result = await this.sendTrx(address, this.tronWeb.toSun(amount), from, privateKey);
+      this.address.setBalance(from, parseFloat(Big(balance).minus(amount)))
       return result
-    }else {
+    } else {
       logger.info('Not enough balance(balance-0.1) to transfer', amount);
       logger.info('Manually sweep the balance if you want to transfer');
       return false
@@ -79,7 +97,7 @@ export default class Tron {
   async send(to, amount) {
     try {
       const { privateKey, address } = await this.address.getMaster();
-      const balance = await this.getMasterBalance() - amount;
+      const balance = parseFloat(Big(await this.getMasterBalance()).minus(amount));
       if (balance <= 0) {
         return [false]
       }
@@ -87,14 +105,14 @@ export default class Tron {
       if (balance > config.FREEZE) {
         this.checkResources(address);
       }
-      if(address === to) {
+      if (address === to) {
         return [false]
       }
       const r = await this.sendTrx(to, amount, address, privateKey);
       if (r && r.result) {
         await this.waitFor(3000);
         return [true, { transaction_id: r.transaction.txID }];
-      }else {
+      } else {
         return [false]
       }
     } catch (e) {
@@ -115,8 +133,8 @@ export default class Tron {
     }
   }
 
-  notify(from, to, txid, amount) {
-    logger.info('Transaction found', txid, amount, 'from', from)
+  notify(from, to, txid, amount, id) {
+    logger.info(`[${id}]Transaction found`, txid, amount, 'from', from)
     this.txCache.add(txid);
     const payload = {}
     payload.hash = txid;
@@ -124,7 +142,7 @@ export default class Tron {
     payload.token = 'TRX';
     payload.from = from;
     payload.to = to;
-    notifier(payload);
+    notifier(payload, id);
   }
   extractTxFields(tx) {
 
@@ -148,26 +166,24 @@ export default class Tron {
     }
   }
 
-  async processTx(txInfo,retry = 0) {
+  async processTx(txInfo, id, retry = 0) {
     if (txInfo && !this.txCache.has(txInfo.txid)) {
       try {
         logger.info('Processing transaction...')
-        setTimeout(async() => {
-          const r = await this.transferToMaster(txInfo.toAddress);
-          if (r && r.transaction) {
-            this.notify(txInfo.fromAddress, txInfo.toAddress, txInfo.txid, txInfo.amountTrx)
-            logger.info('Successfully sent:', r.transaction.txID)
-          }else {
-            logger.info('Transfer to master failed... retrying in 60 seconds');
-            retry++;
-            if(retry <= 10) {
-              await this.waitFor(60000)
-              this.processTx(txInfo,retry)
-            }else {
-              this.notify(txInfo.fromAddress, txInfo.toAddress, txInfo.txid, txInfo.amountTrx)
-            }
+        const [success] = await this.verifyTransaction(txInfo.txid);
+        if (success) {
+          const bal = await this.getBalance(txInfo.toAddress)
+          await this.address.setBalance(txInfo.toAddress, this.tronWeb.fromSun(bal.balance));
+          this.notify(txInfo.fromAddress, txInfo.toAddress, txInfo.txid, txInfo.amountTrx, id)
+        } else {
+          retry++;
+          if (retry <= 10) {
+            logger.info(`[${id}]Txid not found, rechecking in 10 seconds`);
+            await this.waitFor(10000)
+            this.processTx(txInfo, id, retry)
           }
-        },15000)
+        }
+
       } catch (e) {
         logger.error(e)
         this.txCache.add(txInfo.txid);
@@ -201,7 +217,7 @@ export default class Tron {
     const delegated = get(accInfo, 'delegated_frozen_balance_for_bandwidth') || 0
     const frozen = get(accInfo, 'frozen[0].frozen_balance') || 0
     const totalFrozen = delegated + frozen;
-    const total = (totalFrozen - currentVote) > 0 ? totalFrozen : 0;
+    const total = parseFloat(Big(totalFrozen).minus(currentVote)) > 0 ? totalFrozen : 0;
     return { total, expire: get(accInfo, 'frozen[0].expire_time') || 0 };
   }
   async checkAndUnfreezeBalance(address) {
@@ -229,16 +245,16 @@ export default class Tron {
   async unFreeze() {
     const { address, privateKey } = await this.address.getMaster();
     const { expire, total } = await this.getTotalFrozenBal(address)
-     if (new Date(expire) > new Date() ) return Promise.reject(new Error('Frozen expiry not yet met'));
-    if(!total) return Promise.reject(new Error('No frozen balance'));
+    if (new Date(expire) > new Date()) return Promise.reject(new Error('Frozen expiry not yet met'));
+    if (!total) return Promise.reject(new Error('No frozen balance'));
     const unsignedTx = await this.tronWeb.transactionBuilder.unfreezeBalance('BANDWIDTH', address, address, 1);
     const signedTx = await this.tronWeb.trx.sign(unsignedTx, privateKey);
-    const res =await this.tronWeb.trx.sendRawTransaction(signedTx);
+    const res = await this.tronWeb.trx.sendRawTransaction(signedTx);
     logger.info('unFroze', total, 'TRX');
     return res.transaction.txID;
   }
   async checkResources() {
-    const { address, privateKey } = await this.address.getMaster();
+    const { address } = await this.address.getMaster();
     const bandwidth = await this.tronWeb.trx.getBandwidth(address);
     let amountFreeze = config.FREEZE
     if (bandwidth < 500) {
@@ -280,14 +296,17 @@ export default class Tron {
     try {
       const size = await this.address.lastIndex()
       let addresses = [];
-      for (let i = 0; i <= size; i++) {
-        const address = await this.address.getAddress(i)
+      for (let i = 1; i <= size; i++) {
+        const { address, balance } = await this.address.getAddress(i, withBalance)
         const pl = { address };
         if (withBalance) {
-          const { balance } = await this.getBalance(address);
-          pl.balance = this.tronWeb.fromSun(balance)
+          if (balance) {
+            pl.balance = balance
+            addresses.push(pl)
+          }
+        } else {
+          addresses.push(pl)
         }
-        addresses.push(pl)
       }
       return addresses;
     } catch (e) {
@@ -296,32 +315,36 @@ export default class Tron {
   }
   async start() {
     try {
-    let block = getSettings('block');
-    const latestBlock = await this.getLatestBlockNumber();
-    if (!block) {
-      logger.info('Starting at the latest block', latestBlock - 5);
-      block = latestBlock - 5
-    }
-    if (latestBlock > block && (latestBlock - block) > 2) {
-      logger.info('syncing', block, '-', latestBlock);
-      const blockArr = await this.tronWeb.trx.getBlockRange(block + 1, latestBlock);
-      setSettings('block', latestBlock);
-      let transactions = flatMap(blockArr, (n) => n.transactions)
-      transactions = await reduce(transactions, async (result, value) => {
-        result = await Promise.resolve(result);
-        value = this.extractTxFields(value);
-        if (value && await this.address.verify(value.toAddress)) {
-          result.push(value);
-        }
-        return result;
-      }, [])
-      for (const txInfo of transactions) {
-        this.processTx(txInfo)
+      let block = getSettings('block');
+      let latestBlock = await this.getLatestBlockNumber();
+      if (!block) {
+        logger.info('Starting at the latest block', latestBlock - 5);
+        block = latestBlock - 5
       }
-    }
-    await this.waitFor(8000)
-    this.start();
-    }catch(e) {
+      if (latestBlock > block && (latestBlock - block) > 2) {
+        if ((latestBlock - block) > 5) {
+          latestBlock = block + 5;
+        }
+        logger.info('syncing', block, '-', latestBlock);
+        const blockArr = await this.tronWeb.trx.getBlockRange(block + 1, latestBlock);
+        setSettings('block', latestBlock);
+        let transactions = flatMap(blockArr, (n) => n.transactions)
+        transactions = await reduce(transactions, async (result, value) => {
+          result = await Promise.resolve(result);
+          value = this.extractTxFields(value);
+          if (value && await this.address.verify(value.toAddress)) {
+            result.push(value);
+          }
+          return result;
+        }, [])
+        for (const txInfo of transactions) {
+          this.processTx(txInfo, this.id)
+          this.id++;
+        }
+      }
+      await this.waitFor(5000)
+      this.start();
+    } catch (e) {
       logger.error(e);
       this.start();
     }

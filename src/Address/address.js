@@ -6,8 +6,8 @@ export class AddressManager {
   constructor() {
     this.loaded = false
   }
-  async init(){
-      this.db = await AddressStore();
+  async init() {
+    this.db = await AddressStore();
   }
   async load(mnemonic) {
     if (!mnemonic) {
@@ -23,6 +23,10 @@ export class AddressManager {
     await this.db.addAddress(addr.address, addr);
     return addr.address;
   }
+  async setBalance(address, balance) {
+    this.db.updateAddressBalance(address, balance)
+  }
+
   async verify(address) {
     try {
       return await this.db.getAddress(address);
@@ -47,11 +51,19 @@ export class AddressManager {
       return await this.address.getAddressInfo(index);
     }
   }
-  async getAddress(index) {
-    return await this.address.getAddress(index)
+  async getAddress(index, withBalance = false) {
+    const address = await this.address.getAddress(index);
+    if (withBalance) {
+      const res = await this.db.getAddress(address);
+      if (res.balance) {
+        return { address, balance: res.balance }
+      }
+    }
+      return { address }
+
   }
   async lastIndex() {
-     return await this.db.getLastIndex();
+    return await this.db.getLastIndex();
   }
   async mnemonicLoaded() {
     try {

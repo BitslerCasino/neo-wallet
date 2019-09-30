@@ -59,11 +59,22 @@ program
   });
 program
   .command('sweep <address>')
-  .description('Get current balance of master address')
+  .description('Sweep balance of specific address to master')
   .action(async (address) => {
     const r = await reqLocal('sweep', {address});
     if (r.body.success) {
       console.log(JSON.stringify(r.body.data,null,2));
+    } else {
+      console.log('Internal Error');
+    }
+  });
+program
+  .command('sweepall ')
+  .description('Sweep all addresses balance to master')
+  .action(async () => {
+    const r = await reqLocal('sweepall');
+    if (r.body.success) {
+      console.log('Balances Sweeped!');
     } else {
       console.log('Internal Error');
     }
@@ -83,7 +94,7 @@ program
 program
   .command('getNewAddress')
   .alias('getnewaddress')
-  .description('Validates if an address format is correct and active')
+  .description('Get new Tron address')
   .action(async () => {
     const r = await reqLocal('getnewaddress');
     if (r.body.success) {
@@ -93,13 +104,17 @@ program
     }
   });
   program
-  .command('getAllAddress <balance>')
+  .command('getAllAddress [balance]')
   .alias('getalladdress')
   .description('Gets all addresses')
-  .action(async (balance) => {
+  .action(async (balance = 0) => {
     const r = await reqLocal('getalladdress',{balance});
     if (r.body.success) {
-      console.log(r.body.addresses);
+      let text = '';
+      for(const addr of r.body.addresses) {
+        text+=addr.address + (addr.balance ? ' - ' + addr.balance:'') + '\n';
+      }
+      console.log(text || 'All addresses are empty')
     } else {
       console.log('Invalid or inactive address');
     }

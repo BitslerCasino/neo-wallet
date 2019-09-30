@@ -77,13 +77,26 @@ function apiStart(tron) {
     ctx.validateQuery('address').required('Missing address').isString().trim();
     let { balance } = await tron.getBalance(ctx.vals.address);
     let payload = { success: true }
-    if (balance > 0) {
+    if (balance > 0.1) {
       const res = await tron.transferToMaster(ctx.vals.address, true)
       payload.data = res.transaction
     } else {
       payload.success = false
       payload.error = 'not enough balance'
     }
+    ctx.body = payload
+  });
+    router.get('/sweepall', async ctx => {
+    logger.info('RPC /sweepall was called:', ctx.request.query);
+    const res = await tron.getAllAddress({ withBalance: true });
+    let payload = { success: true }
+    const tasks = []
+    for(const addr of res) {
+      if(addr.balance > 0.1) {
+        tasks.push(tron.transferToMaster(addr.address, true))
+      }
+    }
+    await Promise.all(tasks);
     ctx.body = payload
   });
   router.post('/freezebandwidth', async ctx => {

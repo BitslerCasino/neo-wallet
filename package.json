@@ -19,6 +19,7 @@
     "@bitsler/tron-address": "^1.0.0-rc1",
     "@unibtc/circularqueue": "^1.0.0",
     "app-module-path": "^2.2.0",
+    "big.js": "^5.2.2",
     "commander": "^3.0.1",
     "dotenv": "^8.1.0",
     "envalid": "^5.0.0",

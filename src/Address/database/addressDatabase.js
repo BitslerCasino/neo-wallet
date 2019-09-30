@@ -18,7 +18,7 @@ class AddressStore {
     this.storeLoaded = false;
   }
   async put(...args) {
-    if (!this.storeLoaded) { 
+    if (!this.storeLoaded) {
       await this.loadStore();
     }
     await this.db.put(...args);
@@ -39,6 +39,11 @@ class AddressStore {
       await this.storeLastIndex(obj.index);
     }
     await this.put(address, obj);
+  }
+  async updateAddressBalance(address,balance) {
+    const obj = await this.getAddress(address);
+    obj.balance = parseFloat(balance);
+    return await this.put(address,obj);
   }
   async getAddress(address) {
     return await this.fetch(address);
