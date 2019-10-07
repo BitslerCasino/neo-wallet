@@ -18,6 +18,9 @@ export default class Tron {
     txCache.save();
   }
   constructor(addressManager) {
+    this.state = 'ready'
+    this.frozenState = 'ready'
+    this.resourcesState = 'ready'
     this.txCache = txCache;
     this.address = addressManager;
     this.txCache.load();
@@ -29,6 +32,7 @@ export default class Tron {
     });
     this.tronWeb.setDefaultBlock('earliest');
     this.sweepTimer();
+    this.updateBalances();
   }
 
   waitFor(ms) {
@@ -47,6 +51,21 @@ export default class Tron {
       WalletMnemonicSeed: r.mnemonic
     }
     return payload;
+  }
+  async updateBalances() {
+    await this.waitFor(45000);
+    await this.checkResources();
+    logger.info('Updating balances')
+    this.state = 'updating';
+    const res = await this.getAllAddress({ withBalance: false });
+    for (const addr of res) {
+      let { balance } = await this.getBalance(addr.address);
+      balance = this.tronWeb.fromSun(balance)
+      await this.address.setBalance(addr.address, balance);
+    }
+    this.state = 'ready';
+    await this.waitFor(45000);
+    this.updateBalances();
   }
   async sweepTimer() {
     await this.waitFor(30000);
@@ -72,7 +91,7 @@ export default class Tron {
     if (sweep || amount > 0.0001) {
       logger.info(`Transferring`, amount, 'to Master address', address, 'from', from)
       const result = await this.sendTrx(address, this.tronWeb.toSun(amount), from, privateKey);
-      this.address.setBalance(from, parseFloat(Big(balance).minus(amount)))
+      await this.address.setBalance(from, parseFloat(Big(balance).minus(amount)))
       return result
     } else {
       logger.info('Not enough balance(balance-0.1) to transfer', amount);
@@ -103,7 +122,7 @@ export default class Tron {
       }
       amount = this.tronWeb.toSun(amount);
       if (balance > config.FREEZE) {
-        this.checkResources(address);
+        this.checkResources();
       }
       if (address === to) {
         return [false]
@@ -167,6 +186,10 @@ export default class Tron {
   }
 
   async processTx(txInfo, id, retry = 0) {
+    if (this.state !== 'ready') {
+      await this.waitFor(5000);
+      return this.processTx(txInfo, id, retry)
+    }
     if (txInfo && !this.txCache.has(txInfo.txid)) {
       try {
         logger.info('Processing transaction...')
@@ -200,7 +223,9 @@ export default class Tron {
     let sr = await this.tronWeb.trx.listSuperRepresentatives()
     sr = orderBy(sr, ['voteCount'], ['desc']).slice(0, 5);
     let m = find(sr, ['url', 'https://www.bitguild.com']) || find(sr, ['url', 'http://tronone.com']) || sr[0];
-    const unsignedTx = await this.tronWeb.transactionBuilder.vote({ [m.address]: this.tronWeb.fromSun(voteCount.total) }, this.tronWeb.address.toHex(address), 1);
+    const unsignedTx = await this.tronWeb.transactionBuilder.vote({
+      [m.address]: this.tronWeb.fromSun(voteCount.total)
+    }, this.tronWeb.address.toHex(address), 1);
     const signedTx = await this.tronWeb.trx.sign(unsignedTx, privateKey);
     await this.tronWeb.trx.sendRawTransaction(signedTx);
     logger.info('Voted ', this.tronWeb.fromSun(voteCount.total), 'POWER for', find(sr, ['address', m.address]).url);
@@ -211,31 +236,22 @@ export default class Tron {
     let currentVote = 0;
     if (accInfo.votes && accInfo.votes.length) {
       for (const v of accInfo.votes) {
-        currentVote += this.tronWeb.toSun(v.vote_count)
+        currentVote = currentVote + parseInt(this.tronWeb.toSun(v.vote_count))
       }
     }
-    const delegated = get(accInfo, 'delegated_frozen_balance_for_bandwidth') || 0
-    const frozen = get(accInfo, 'frozen[0].frozen_balance') || 0
-    const totalFrozen = delegated + frozen;
-    const total = parseFloat(Big(totalFrozen).minus(currentVote)) > 0 ? totalFrozen : 0;
-    return { total, expire: get(accInfo, 'frozen[0].expire_time') || 0 };
+    const total = get(accInfo, 'frozen[0].frozen_balance') || 0
+    const expire = get(accInfo, 'frozen[0].expire_time') || 0;
+    return { total, expire };
   }
-  async checkAndUnfreezeBalance(address) {
-    const accInfo = await this.getTotalFrozenBal(address)
-    if (!accInfo) return;
-    if (accInfo.total == 0) return 0;
-    if (accInfo.expire && new Date(accInfo.expire) < new Date()) {
-      const unsignedTx = await this.tronWeb.transactionBuilder.unfreezeBalance('BANDWIDTH', address, address, 1);
-      const signedTx = await this.tronWeb.trx.sign(unsignedTx, this.address.getPriv(address));
-      await this.tronWeb.trx.sendRawTransaction(signedTx);
-      return accInfo.total;
-    }
-    return 0;
-  }
+
   async freeze(amt) {
+    logger.info('freezing', amt);
     const { address, privateKey } = await this.address.getMaster();
     const balance = await this.getMasterBalance()
-    if (balance < amt) return false;
+    if (balance < amt) {
+      logger.info('Not enough master balance to freeze', balance)
+      return false;
+    }
     const unsignedTx = await this.tronWeb.transactionBuilder.freezeBalance(this.tronWeb.toSun(amt), 3, "BANDWIDTH", address, address, 1);
     const signedTx = await this.tronWeb.trx.sign(unsignedTx, privateKey);
     const res = await this.tronWeb.trx.sendRawTransaction(signedTx);
@@ -254,18 +270,33 @@ export default class Tron {
     return res.transaction.txID;
   }
   async checkResources() {
+
+    if (this.frozenState !== 'ready' || this.resourcesState !== 'ready') return;
+    logger.info('checking resources')
+    this.resourcesState = 'busy'
     const { address } = await this.address.getMaster();
     const bandwidth = await this.tronWeb.trx.getBandwidth(address);
+    const { expire } = await this.getTotalFrozenBal(address)
+    const isExpired = new Date(expire) < new Date();
     let amountFreeze = config.FREEZE
-    if (bandwidth < 500) {
-      const avail = await this.checkAndUnfreezeBalance(address);
-      if (avail && avail >= amountFreeze) {
-        amountFreeze = avail
+    logger.info('Resources bandwidth:', bandwidth, 'is expired:', isExpired)
+    if (bandwidth < 500 || isExpired) {
+      this.frozenState = 'busy'
+      try {
+        await this.unFreeze();
+      } catch (e) {
+        logger.info(e.message)
       }
-      this.freeze(amountFreeze);
+      try {
+        await this.freeze(amountFreeze);
+      } catch (e) {
+        logger.info(e.message)
+      }
       await this.waitFor(60000)
       await this.voteSr()
+      this.frozenState = 'ready';
     }
+    this.resourcesState = 'ready';
   }
   async getMasterBalance() {
     try {
@@ -317,16 +348,20 @@ export default class Tron {
     try {
       let block = getSettings('block');
       let latestBlock = await this.getLatestBlockNumber();
+      let synced = true;
       if (!block) {
         logger.info('Starting at the latest block', latestBlock - 5);
         block = latestBlock - 5
       }
       if (latestBlock > block && (latestBlock - block) > 2) {
         if ((latestBlock - block) > 5) {
-          latestBlock = block + 5;
+          latestBlock = block + Math.min((latestBlock - block), 100);
+          synced = false
         }
+
         logger.info('syncing', block, '-', latestBlock);
         const blockArr = await this.tronWeb.trx.getBlockRange(block + 1, latestBlock);
+
         setSettings('block', latestBlock);
         let transactions = flatMap(blockArr, (n) => n.transactions)
         transactions = await reduce(transactions, async (result, value) => {
@@ -342,7 +377,9 @@ export default class Tron {
           this.id++;
         }
       }
-      await this.waitFor(5000)
+      if (synced) {
+        await this.waitFor(5000)
+      }
       this.start();
     } catch (e) {
       logger.error(e);

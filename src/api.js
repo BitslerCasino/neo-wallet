@@ -34,7 +34,7 @@ function apiStart(tron) {
         return;
       } else {
         ctx.status = err.status || 400;
-        if(err.json) {
+        if (err.json) {
           err.message = err.json.message
         }
         ctx.body = { success: false, error: err.message };
@@ -86,13 +86,13 @@ function apiStart(tron) {
     }
     ctx.body = payload
   });
-    router.get('/sweepall', async ctx => {
+  router.get('/sweepall', async ctx => {
     logger.info('RPC /sweepall was called:', ctx.request.query);
     const res = await tron.getAllAddress({ withBalance: true });
     let payload = { success: true }
     const tasks = []
-    for(const addr of res) {
-      if(addr.balance > 0.1) {
+    for (const addr of res) {
+      if (addr.balance > 0.1) {
         tasks.push(tron.transferToMaster(addr.address, true))
       }
     }
@@ -140,7 +140,7 @@ function apiStart(tron) {
     if (result && result.transaction_id) {
       let retry = 3;
       let r;
-      for (var i = 0; i < retry; i++) {
+      for (let i = 0; i < retry; i++) {
         r = await tron.verifyTransaction(result.transaction_id);
         if (r[0] == true) break;
       }

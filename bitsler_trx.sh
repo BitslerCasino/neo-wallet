@@ -70,7 +70,9 @@ VERSION=$1
 echo "Updating trx to $VERSION"
 sudo docker stop trx-node || true
 sudo docker rm trx-node || true
+sudo docker images -a | grep "unibtc/trx" | awk '{print $3}' | xargs docker rmi
 sudo docker pull unibtc/trx:$VERSION
+sudo rm -rf ~/docker/volumes/trx-data  || true
 sudo docker volume rm trx-data
 sudo docker volume create --name=trx-data
 docker run -v trx-data:/usr/src/app --name=trx-node -d \

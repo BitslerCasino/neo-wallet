@@ -24,9 +24,8 @@ export class AddressManager {
     return addr.address;
   }
   async setBalance(address, balance) {
-    this.db.updateAddressBalance(address, balance)
+    await this.db.updateAddressBalance(address, balance)
   }
-
   async verify(address) {
     try {
       return await this.db.getAddress(address);
@@ -59,7 +58,7 @@ export class AddressManager {
         return { address, balance: res.balance }
       }
     }
-      return { address }
+    return { address }
 
   }
   async lastIndex() {
