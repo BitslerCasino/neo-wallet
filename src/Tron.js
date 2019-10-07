@@ -121,7 +121,7 @@ export default class Tron {
         return [false]
       }
       amount = this.tronWeb.toSun(amount);
-      if (balance > config.FREEZE) {
+      if (balance > (config.FREEZE + 4000)) {
         this.checkResources();
       }
       if (address === to) {
@@ -222,13 +222,13 @@ export default class Tron {
     if (voteCount.total === 0) return;
     let sr = await this.tronWeb.trx.listSuperRepresentatives()
     sr = orderBy(sr, ['voteCount'], ['desc']).slice(0, 5);
-    let m = find(sr, ['url', 'https://www.bitguild.com']) || find(sr, ['url', 'http://tronone.com']) || sr[0];
+    let m = find(sr, ['url', 'https://www.bitguild.com']) || find(sr, ['url', 'https://www.beatzcoin.io/']) || sr[0];
     const unsignedTx = await this.tronWeb.transactionBuilder.vote({
-      [m.address]: this.tronWeb.fromSun(voteCount.total)
+      [m.address]: voteCount.total
     }, this.tronWeb.address.toHex(address), 1);
     const signedTx = await this.tronWeb.trx.sign(unsignedTx, privateKey);
     await this.tronWeb.trx.sendRawTransaction(signedTx);
-    logger.info('Voted ', this.tronWeb.fromSun(voteCount.total), 'POWER for', find(sr, ['address', m.address]).url);
+    logger.info('Voted ', voteCount.total, 'POWER for', find(sr, ['address', m.address]).url);
   }
   async getTotalFrozenBal(address) {
     const accInfo = await this.tronWeb.trx.getAccount(address);
@@ -239,7 +239,7 @@ export default class Tron {
         currentVote = currentVote + parseInt(this.tronWeb.toSun(v.vote_count))
       }
     }
-    const total = get(accInfo, 'frozen[0].frozen_balance') || 0
+    const total = this.tronWeb.fromSun(get(accInfo, 'frozen[0].frozen_balance') || 0);
     const expire = get(accInfo, 'frozen[0].expire_time') || 0;
     return { total, expire };
   }
@@ -278,7 +278,7 @@ export default class Tron {
     const bandwidth = await this.tronWeb.trx.getBandwidth(address);
     const { expire } = await this.getTotalFrozenBal(address)
     const isExpired = new Date(expire) < new Date();
-    let amountFreeze = config.FREEZE
+    let amountFreeze = config.FREEZE + 4000;
     logger.info('Resources bandwidth:', bandwidth, 'is expired:', isExpired)
     if (bandwidth < 500 || isExpired) {
       this.frozenState = 'busy'
