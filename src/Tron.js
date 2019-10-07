@@ -21,6 +21,7 @@ export default class Tron {
     this.state = 'ready'
     this.frozenState = 'ready'
     this.resourcesState = 'ready'
+    this.initial = true;
     this.txCache = txCache;
     this.address = addressManager;
     this.txCache.load();
@@ -53,33 +54,50 @@ export default class Tron {
     return payload;
   }
   async updateBalances() {
-    await this.waitFor(45000);
-    await this.checkResources();
-    logger.info('Updating balances')
-    this.state = 'updating';
-    const res = await this.getAllAddress({ withBalance: false });
-    for (const addr of res) {
-      let { balance } = await this.getBalance(addr.address);
-      balance = this.tronWeb.fromSun(balance)
-      await this.address.setBalance(addr.address, balance);
+    try {
+      if (!this.initial) {
+        await this.waitFor(75000);
+      } else {
+        this.initial = false;
+      }
+      this.checkResources();
+      logger.info('Updating balances')
+      this.state = 'updating';
+      const res = await this.getAllAddress({ withBalance: false });
+      for (const addr of res) {
+        let { balance } = await this.getBalance(addr.address);
+        balance = this.tronWeb.fromSun(balance)
+        await this.address.setBalance(addr.address, balance);
+      }
+      this.state = 'ready';
+      await this.waitFor(75000);
+      this.updateBalances();
+    } catch (e) {
+      logger.error(e)
+      this.state = 'ready';
+      await this.waitFor(75000);
+      this.updateBalances();
     }
-    this.state = 'ready';
-    await this.waitFor(45000);
-    this.updateBalances();
   }
   async sweepTimer() {
-    await this.waitFor(30000);
-    const res = await this.getAllAddress({ withBalance: true });
-    const tasks = []
-    for (const addr of res) {
-      if (addr.balance > 0.1) {
-        logger.info('Sweeping', Big(addr.balance).minus(0.1), 'from', addr.address);
-        tasks.push(this.transferToMaster(addr.address, true))
+    try {
+      await this.waitFor(30000);
+      const res = await this.getAllAddress({ withBalance: true });
+      const tasks = []
+      for (const addr of res) {
+        if (addr.balance > 0.1) {
+          logger.info('Sweeping', Big(addr.balance).minus(0.1), 'from', addr.address);
+          tasks.push(this.transferToMaster(addr.address, true))
+        }
       }
+      await Promise.all(tasks);
+      await this.waitFor(30000);
+      this.sweepTimer()
+    } catch (e) {
+      logger.error(e);
+      await this.waitFor(30000);
+      this.sweepTimer()
     }
-    await Promise.all(tasks);
-    await this.waitFor(30000);
-    this.sweepTimer()
   }
   async transferToMaster(from, sweep = false) {
     const { address } = await this.address.getMaster();
@@ -195,6 +213,7 @@ export default class Tron {
         logger.info('Processing transaction...')
         const [success] = await this.verifyTransaction(txInfo.txid);
         if (success) {
+          await this.waitFor(5000)
           const bal = await this.getBalance(txInfo.toAddress)
           await this.address.setBalance(txInfo.toAddress, this.tronWeb.fromSun(bal.balance));
           this.notify(txInfo.fromAddress, txInfo.toAddress, txInfo.txid, txInfo.amountTrx, id)
@@ -270,7 +289,6 @@ export default class Tron {
     return res.transaction.txID;
   }
   async checkResources() {
-
     if (this.frozenState !== 'ready' || this.resourcesState !== 'ready') return;
     logger.info('checking resources')
     this.resourcesState = 'busy'
