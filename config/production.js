@@ -5,7 +5,6 @@ const config = envalid.cleanEnv(process.env, {
     HOST: str(),
     PORT: port(),
     NOTIFY_URL: str(),
-    NOTIFY_URL_DEV: str({default: 'localhost'}),
-    FREEZE: num()
+    NOTIFY_URL_DEV: str({default: 'localhost'})
 })
 export default config;

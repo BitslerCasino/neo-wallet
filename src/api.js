@@ -7,7 +7,7 @@ import { getSettings, setSettings } from './store.js'
 import helpers from './utils';
 import config from '../config/production';
 
-function apiStart(tron) {
+function apiStart(neo) {
   const secret = getSettings('secret');
   if (!secret) {
     setSettings('secret', helpers.genKey());
@@ -53,32 +53,32 @@ function apiStart(tron) {
   });
   router.get('/getinfo', async ctx => {
     logger.info('RPC /getinfo was called');
-    const payload = await tron.getInfo();
+    const payload = await neo.getInfo();
     ctx.body = { success: true, data: payload };
   })
   router.get('/getnewaddress', async ctx => {
     logger.info('RPC /getnewaddress was called');
-    const payload = await tron.getNewAddress();
+    const payload = await neo.getNewAddress();
     ctx.body = { success: true, data: payload };
   })
   router.get('/balance', async ctx => {
     logger.info('RPC /balance was called', ctx.request.query);
-    const bal = await tron.getMasterBalance();
-    ctx.body = { success: true, balance: { value: bal, currency: 'TRX' } };
+    const bal = await neo.getMasterBalance();
+    ctx.body = { success: true, balance: { value: bal, currency: 'NEO' } };
   });
   router.get('/validate', async ctx => {
     logger.info('RPC /validate was called:', ctx.request.query);
     ctx.validateQuery('address').required('Missing address').isString().trim();
-    ctx.check(tron.checkAccountFormat(ctx.vals.address), 'invalid format')
+    ctx.check(neo.checkAccountFormat(ctx.vals.address), 'invalid format')
     ctx.body = { success: true }
   });
   router.get('/sweep', async ctx => {
     logger.info('RPC /sweep was called:', ctx.request.query);
     ctx.validateQuery('address').required('Missing address').isString().trim();
-    let { balance } = await tron.getBalance(ctx.vals.address);
+    let { balance } = await neo.getBalance(ctx.vals.address);
     let payload = { success: true }
     if (balance > 0.1) {
-      const res = await tron.transferToMaster(ctx.vals.address, true)
+      const res = await neo.transferToMaster(ctx.vals.address, true)
       payload.data = res.transaction
     } else {
       payload.success = false
@@ -88,31 +88,18 @@ function apiStart(tron) {
   });
   router.get('/sweepall', async ctx => {
     logger.info('RPC /sweepall was called:', ctx.request.query);
-    const res = await tron.getAllAddress({ withBalance: true });
+    const res = await neo.getAllAddress({ withBalance: true });
     let payload = { success: true }
     const tasks = []
     for (const addr of res) {
       if (addr.balance > 0.1) {
-        tasks.push(tron.transferToMaster(addr.address, true))
+        tasks.push(neo.transferToMaster(addr.address, true))
       }
     }
     await Promise.all(tasks);
     ctx.body = payload
   });
-  router.post('/freezebandwidth', async ctx => {
-    logger.info('RPC /freezebandwidth was called:', ctx.request.query);
-    ctx.validateBody('amount').required('Missing amount').toDecimal('Invalid amount').tap(n => helpers.truncateTwo(n))
-    const res = await tron.freeze(ctx.vals.amount)
-    ctx.body = { success: true, txid: res }
-    tron.waitFor(60000).then(() => {
-      tron.voteSr()
-    })
-  });
-  router.get('/unfreezebandwidth', async ctx => {
-    logger.info('RPC /unfreezebandwidth was called:', ctx.request.query);
-    const res = await tron.unFreeze()
-    ctx.body = { success: true, txid: res }
-  });
+
   router.get('/getalladdress', async ctx => {
     logger.info('RPC /getalladdress was called:', ctx.request.query);
     ctx.validateQuery('balance').optional().toInt();
@@ -120,7 +107,7 @@ function apiStart(tron) {
     if (ctx.vals.balance && ctx.vals.balance === 1) {
       options.withBalance = true
     }
-    const res = await tron.getAllAddress(options);
+    const res = await neo.getAllAddress(options);
     if (res) {
       ctx.body = { success: true, addresses: res };
     }
@@ -131,9 +118,9 @@ function apiStart(tron) {
     ctx.validateBody('address').required('Missing address').isString().trim();
     ctx.check(ctx.vals.amount && ctx.vals.amount >= 0.01, 'Invalid amount');
     ctx.check(ctx.vals.address, 'Invalid address');
-    const formatAddress = await tron.checkAccountFormat(ctx.vals.address);
+    const formatAddress = await neo.checkAccountFormat(ctx.vals.address);
     ctx.check(formatAddress, 'Invalid address format');
-    const [success, result] = await tron.send(ctx.vals.address, ctx.vals.amount);
+    const [success, result] = await neo.send(ctx.vals.address, ctx.vals.amount);
     if (!success || !result || !result.transaction_id) {
       return ctx.throw(400, 'not_found');
     }
@@ -141,7 +128,7 @@ function apiStart(tron) {
       let retry = 3;
       let r;
       for (let i = 0; i < retry; i++) {
-        r = await tron.verifyTransaction(result.transaction_id);
+        r = await neo.verifyTransaction(result.transaction_id);
         if (r[0] == true) break;
       }
       if (!r[0] && r[1] && r[1] == 'not_found') {

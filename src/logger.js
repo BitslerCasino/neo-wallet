@@ -3,7 +3,7 @@ require('winston-daily-rotate-file');
 const { combine, timestamp, printf } = format;
 const logFormat = printf(info => `${info.timestamp} [${info.level.toUpperCase()}]: ${info.message}`);
 const rtransport = new transports.DailyRotateFile({
-  filename: 'trx-%DATE%.log',
+  filename: 'neo-%DATE%.log',
   dirname: './logs',
   datePattern: 'YYYY-ww',
   zippedArchive: true,

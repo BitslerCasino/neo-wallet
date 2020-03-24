@@ -4,4 +4,5 @@ db.json
 .theia
 datas
 logs
-bitsler_trx.sh
+bitsler_neo.sh
+test.js

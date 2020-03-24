@@ -31,7 +31,7 @@ const reqLocal = async (route, data, method = 'get') => {
 
 program
   .version(pkgjson.version)
-  .description(`TRON Wallet CLI v${pkgjson.version}`);
+  .description(`NEO Wallet CLI v${pkgjson.version}`);
 
 program
   .command('getBalance')
@@ -48,7 +48,7 @@ program
 program
   .command('getInfo')
   .alias('getinfo')
-  .description('Get current balance of master address')
+  .description('Get information about the wallet')
   .action(async () => {
     const r = await reqLocal('getinfo');
     if (r.body.success) {
@@ -117,27 +117,6 @@ program
       console.log(text || 'All addresses are empty')
     } else {
       console.log('Invalid or inactive address');
-    }
-  });
-  program
-  .command('freeze <amount>')
-  .description('Freezes trx coins to gain bandwidth')
-  .action(async (amount) => {
-    const r = await reqLocal('freezebandwidth',JSON.stringify({amount}), 'post');
-    if (r.body.success) {
-      console.log('Processed',r.body.txid);
-    } else {
-      console.log(r.body.error);
-    }
-  });
-   program.command('unfreeze')
-  .description('unFreezes trx coins to gain bandwidth')
-  .action(async () => {
-    const r = await reqLocal('unfreezebandwidth');
-    if (r.body.success) {
-      console.log('Processed:',r.body.txid);
-    } else {
-      console.log(r.body.error);
     }
   });
   program.command('stop')

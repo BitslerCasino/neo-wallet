@@ -1,4 +1,4 @@
-import Address from '@bitsler/tron-address'
+import Address from '@bitsler/neo-address'
 import AddressStore from './database/addressDatabase'
 
 export const generateMnemonic = Address.generateMnemonic;

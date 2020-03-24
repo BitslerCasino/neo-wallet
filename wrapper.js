@@ -1,11 +1,11 @@
 
 
 import { AddressManager, generateMnemonic } from './src/Address/address'
-import Tron from './src/Tron';
+import Neo from './src/Neo';
 import api from './src/api';
 import logger from './src/logger'
 const address = new AddressManager();
-const tron = new Tron(address);
+const neo = new Neo(address);
 
 async function run() {
   logger.info('Checking wallet...')
@@ -19,11 +19,11 @@ async function run() {
   }
   logger.info('Loading wallet...')
   await address.load(mnemonic);
-  api(tron);
-  tron.start();
+  api(neo);
+  neo.start();
 
 }
 function save() {
-  Tron.save();
+  Neo.save();
 }
 export default { run, save };

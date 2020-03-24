@@ -1,4 +1,4 @@
-FROM node:10.16-slim
+FROM node:12-slim
 
 WORKDIR /usr/src/app
 
@@ -7,8 +7,8 @@ COPY yarn.lock ./
 
 RUN npm install yarn pm2 -g && yarn install --prod
 COPY . .
-RUN chmod +x /usr/src/app/bin/trx-cli && ln -s /usr/src/app/bin/trx-cli /usr/bin/
+RUN chmod +x /usr/src/app/bin/neo-cli && ln -s /usr/src/app/bin/neo-cli /usr/bin/
 
-EXPOSE 8844
+EXPOSE 10333
 
 CMD [ "yarn", "start" ]
