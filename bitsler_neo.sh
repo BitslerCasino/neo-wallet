@@ -13,29 +13,28 @@ die () {
   exit "$ret"
 }
 
-echo "Installing TRX Docker"
+echo "Installing NEO Docker"
 
-mkdir -p $HOME/.trx/logs
-mkdir -p $HOME/.trx/datas
+mkdir -p $HOME/.neo/logs
+mkdir -p $HOME/.neo/datas
 
-echo "Initial TRX Configuration"
+echo "Initial NEO Configuration"
 
 read -p 'notify url(this url will be called when a deposit arrives): ' notify
 
 
 [[ -z "$notify" ]] && die "Error: notify url is required. exiting..."
 
-echo "Creating TRX configuration at $HOME/.trx/trx.env"
+echo "Creating NEO configuration at $HOME/.neo/neo.env"
 
-cat >$HOME/.trx/trx.env <<EOL
+cat >$HOME/.neo/neo.env <<EOL
 NODE_ENV=production
-HOST=https://api.trongrid.io
-PORT=8844
+HOST=http://seed1.ngd.network:10332
+PORT=10333
 NOTIFY_URL=$notify
-FREEZE=6000
 EOL
 
-cat >$HOME/.trx/db.json <<'EOL'
+cat >$HOME/.neo/db.json <<'EOL'
 {
   "settings": {
     "secret": ""
@@ -43,61 +42,61 @@ cat >$HOME/.trx/db.json <<'EOL'
 }
 EOL
 
-echo Installing TRX Container
+echo Installing NEO Container
 
-docker volume create --name=trx-data
-docker pull unibtc/trx:latest
-docker run -v trx-data:/usr/src/app --name=trx-node -d \
-      -p 8844:8844 \
-      -v $HOME/.trx/trx.env:/usr/src/app/.env \
-      -v $HOME/.trx/db.json:/usr/src/app/db.json \
-      -v $HOME/.trx/datas:/usr/src/app/datas \
-      -v $HOME/.trx/logs:/usr/src/app/logs \
-      unibtc/trx:latest
+docker volume create --name=neo-data
+docker pull unibtc/neo:latest
+docker run -v neo-data:/usr/src/app --name=neo-node -d \
+      -p 10333:10333 \
+      -v $HOME/.neo/neo.env:/usr/src/app/.env \
+      -v $HOME/.neo/db.json:/usr/src/app/db.json \
+      -v $HOME/.neo/datas:/usr/src/app/datas \
+      -v $HOME/.neo/logs:/usr/src/app/logs \
+      unibtc/neo:latest
 
-cat >/usr/bin/trx-cli <<'EOL'
+cat >/usr/bin/neo-cli <<'EOL'
 #!/usr/bin/env bash
-docker exec -it trx-node /bin/bash -c "trx-cli $*"
+docker exec -it neo-node /bin/bash -c "neo-cli $*"
 EOL
 
-cat >/usr/bin/trx-update <<'EOL'
+cat >/usr/bin/neo-update <<'EOL'
 #!/usr/bin/env bash
 if [[ $EUID -ne 0 ]]; then
    echo "This script must be ran as root or sudo" 1>&2
    exit 1
 fi
 VERSION=$1
-echo "Updating trx to $VERSION"
-sudo docker stop trx-node || true
-sudo docker rm trx-node || true
-sudo docker images -a | grep "unibtc/trx" | awk '{print $3}' | xargs docker rmi
-sudo docker pull unibtc/trx:$VERSION
-sudo rm -rf ~/docker/volumes/trx-data  || true
-sudo docker volume rm trx-data
-sudo docker volume create --name=trx-data
-docker run -v trx-data:/usr/src/app --name=trx-node -d \
-      -p 8844:8844 \
-      -v $HOME/.trx/trx.env:/usr/src/app/.env \
-      -v $HOME/.trx/db.json:/usr/src/app/db.json \
-      -v $HOME/.trx/datas:/usr/src/app/datas \
-      -v $HOME/.trx/logs:/usr/src/app/logs \
-      unibtc/trx:$VERSION
+echo "Updating neo to $VERSION"
+sudo docker stop neo-node || true
+sudo docker rm neo-node || true
+sudo docker images -a | grep "unibtc/neo" | awk '{print $3}' | xargs docker rmi
+sudo docker pull unibtc/neo:$VERSION
+sudo rm -rf ~/docker/volumes/neo-data  || true
+sudo docker volume rm neo-data
+sudo docker volume create --name=neo-data
+docker run -v neo-data:/usr/src/app --name=neo-node -d \
+      -p 10333:10333 \
+      -v $HOME/.neo/neo.env:/usr/src/app/.env \
+      -v $HOME/.neo/db.json:/usr/src/app/db.json \
+      -v $HOME/.neo/datas:/usr/src/app/datas \
+      -v $HOME/.neo/logs:/usr/src/app/logs \
+      unibtc/neo:$VERSION
 EOL
 
-cat >/usr/bin/trx-rm <<'EOL'
+cat >/usr/bin/neo-rm <<'EOL'
 #!/usr/bin/env bash
 if [[ $EUID -ne 0 ]]; then
    echo "This script must be ran as root or sudo" 1>&2
    exit 1
 fi
-echo "WARNING! This will delete ALL TRX installation and files"
+echo "WARNING! This will delete ALL NEO installation and files"
 echo "Make sure your wallet seeds and phrase are safely backed up, there is no way to recover it!"
 function uninstall() {
-  sudo docker stop trx-node
-  sudo docker rm trx-node
-  sudo rm -rf ~/docker/volumes/trx-data ~/.trx /usr/bin/trx-cli
-  sudo docker volume rm trx-data
-  sudo docker image rm unibtc/trx:latest
+  sudo docker stop neo-node
+  sudo docker rm neo-node
+  sudo rm -rf ~/docker/volumes/neo-data ~/.neo /usr/bin/neo-cli
+  sudo docker volume rm neo-data
+  sudo docker image rm unibtc/neo:latest
   echo "Successfully removed"
   sudo rm -- "$0"
 }
@@ -108,12 +107,12 @@ case "$choice" in
 esac
 EOL
 
-chmod +x /usr/bin/trx-rm
-chmod +x /usr/bin/trx-cli
-chmod +x /usr/bin/trx-update
+chmod +x /usr/bin/neo-rm
+chmod +x /usr/bin/neo-cli
+chmod +x /usr/bin/neo-update
 echo
 echo "==========================="
 echo "==========================="
 echo "Installation Complete"
 echo
-echo "RUN trx-cli getinfo"
+echo "RUN neo-cli getinfo"
