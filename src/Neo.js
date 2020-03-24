@@ -99,7 +99,7 @@ export default class Neo {
     let { balance } = await this.getBalance(from);
     const amount = balance;
     if (address == from) return false;
-    if (sweep || amount > 0.0001) {
+    if (sweep && amount > 0.0001) {
       logger.info(`Transferring`, amount, 'to Master address', address, 'from', from)
       const result = await this.sendNeo(address, amount, from, privateKey);
       await this.address.setBalance(from, parseFloat(Big(balance).minus(amount)))
