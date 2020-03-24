@@ -1,4 +1,4 @@
-import Neon, { rpc,api,wallet } from '@cityofzion/neon-js';
+import Neon, { rpc, api, wallet } from '@cityofzion/neon-js';
 import get from 'lodash/get';
 import flatMap from 'lodash/flatMap';
 import find from 'lodash/find';
@@ -103,9 +103,10 @@ export default class Neo {
       logger.info(`Transferring`, amount, 'to Master address', address, 'from', from)
       const result = await this.sendNeo(address, amount, from, privateKey);
       await this.address.setBalance(from, parseFloat(Big(balance).minus(amount)))
+      this.claimGas();
       return result
     } else {
-      logger.info('Not enough balance(balance-0.1) to transfer', amount);
+      logger.info('Not enough balance to transfer', amount);
       logger.info('Manually sweep the balance if you want to transfer');
       return false
     }
@@ -113,9 +114,23 @@ export default class Neo {
 
   async sendNeo(to, amount, from, privateKey) {
     try {
-      const intents = api.makeIntent({ NEO: amount },to);
+      const intents = api.makeIntent({ NEO: amount }, to);
       const account = new wallet.Account(privateKey);
-      const result = await Neon.sendAsset({api:this.neoApi,account,intents});
+      const result = await Neon.sendAsset({ api: this.neoApi, account, intents });
+      return result.response;
+    } catch (e) {
+      logger.error(e)
+    }
+  }
+  async claimGas() {
+    try {
+      const { privateKey, address } = await this.address.getMaster();
+      const config = {
+        api: this.neoApi,
+        account: new wallet.Account(privateKey),
+        privateKey: privateKey
+      }
+      const result = api.claimGas(config)
       return result.response;
     } catch (e) {
       logger.error(e)
@@ -172,10 +187,10 @@ export default class Neo {
 
     let vouts = tx.vout.filter(v => v.asset === '0xc56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b')
     vouts = vouts.map(v => {
-        return {
-            toAddress: v.address,
-            amount: v.value
-        }
+      return {
+        toAddress: v.address,
+        amount: v.value
+      }
     })
 
     return {
@@ -240,7 +255,7 @@ export default class Neo {
 
   async getLatestBlockNumber() {
     const currentBlock = await this.neoWeb.getBlockCount();
-    return currentBlock-1;
+    return currentBlock - 1;
   }
   async getAllAddress({ withBalance }) {
     try {
@@ -263,10 +278,10 @@ export default class Neo {
       logger.error(e)
     }
   }
-  async getBlockRange(from,to) {
-    const tasks =[]
-    for(var i = 0; i <= (to-from);i++) {
-        tasks.push(this.neoWeb.getBlock(from+i))
+  async getBlockRange(from, to) {
+    const tasks = []
+    for (var i = 0; i <= (to - from); i++) {
+      tasks.push(this.neoWeb.getBlock(from + i))
     }
     let r = await Promise.all(tasks);
     r = r.map(blk => blk.tx.filter(tx => tx.type === 'ContractTransaction'));
@@ -290,16 +305,16 @@ export default class Neo {
         logger.info('syncing', block, '-', latestBlock);
         const txArr = await this.getBlockRange(block + 1, latestBlock);
         setSettings('block', latestBlock);
-        const transactions = await reduce(txArr, async(result, value) => {
+        const transactions = await reduce(txArr, async (result, value) => {
           value = this.extractTxFields(value);
           result = await result;
-          if (value){
-            for(let x =0; x < value.txs.length;x++) {
-                if(await this.address.verify(value.txs[x].toAddress)) {
-                    value.toAddress = value.txs[x].toAddress
-                    value.amount = value.txs[x].amount
-                    result.push(value);
-                }
+          if (value) {
+            for (let x = 0; x < value.txs.length; x++) {
+              if (await this.address.verify(value.txs[x].toAddress)) {
+                value.toAddress = value.txs[x].toAddress
+                value.amount = value.txs[x].amount
+                result.push(value);
+              }
             }
           }
 

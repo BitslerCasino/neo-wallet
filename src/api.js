@@ -112,6 +112,16 @@ function apiStart(neo) {
       ctx.body = { success: true, addresses: res };
     }
   })
+  router.get('/claimgas', async ctx => {
+    logger.info('RPC /claimgas was called:', ctx.request.query);
+
+    const res = await neo.claimGas();
+    if (res) {
+      ctx.body = { success: true, result: res };
+    }else {
+      ctx.body = {success: false}
+    }
+  })
   router.post('/withdraw', async (ctx) => {
     logger.info('RPC /withdraw was called:', ctx.request.query, ctx.request.body);
     ctx.validateBody('amount').required('Missing amount').toDecimal('Invalid amount').tap(n => helpers.truncateTwo(n))

@@ -92,6 +92,18 @@ program
     }
   });
 program
+  .command('claimGas')
+  .alias('claimgas')
+  .description('Claims GAS')
+  .action(async() => {
+    const r = await reqLocal('claimgas');
+    if (r.body.success) {
+      console.log(r.body.result);
+    } else {
+      console.log('Error occured');
+    }
+  });
+program
   .command('getNewAddress')
   .alias('getnewaddress')
   .description('Get new Tron address')
