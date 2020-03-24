@@ -313,6 +313,7 @@ export default class Neo {
               if (await this.address.verify(value.txs[x].toAddress)) {
                 value.toAddress = value.txs[x].toAddress
                 value.amount = value.txs[x].amount
+                value.txid = value.txid.substr(2)
                 result.push(value);
               }
             }
