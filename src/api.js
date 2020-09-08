@@ -130,7 +130,7 @@ function apiStart(neo) {
     ctx.check(ctx.vals.address, 'Invalid address');
     const formatAddress = await neo.checkAccountFormat(ctx.vals.address);
     ctx.check(formatAddress, 'Invalid address format');
-    const [success, result] = await neo.send(ctx.vals.address, ctx.vals.amount);
+    const [success, result] = await neo.send(ctx.vals.address, ctx.vals.amount, true);
     if (!success || !result || !result.transaction_id) {
       return ctx.throw(400, 'not_found');
     }

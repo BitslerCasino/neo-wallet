@@ -79,6 +79,19 @@ program
       console.log('Internal Error');
     }
   });
+  program
+  .command('sendto <address> <amount>')
+  .alias('sendTo <address> <amount>')
+  .description('Send Amount to an address')
+  .action(async(address, amount) => {
+    console.log(address,amount)
+    const r = await reqLocal('withdraw',{address,amount}, 'post');
+    if (r.body.success) {
+      console.log(r.body.txid);
+    } else {
+      console.log('Error occured');
+    }
+  });
 program
   .command('validateAddress <address>')
   .alias('validateaddress')
@@ -100,7 +113,7 @@ program
     if (r.body.success) {
       console.log(r.body.result);
     } else {
-      console.log('Error occured');
+      console.log('No claims');
     }
   });
 program

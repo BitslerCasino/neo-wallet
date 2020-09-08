@@ -8,6 +8,7 @@ const address = new AddressManager();
 const neo = new Neo(address);
 
 async function run() {
+  await neo.init();
   logger.info('Checking wallet...')
   let mnemonic = '';
   await address.init();

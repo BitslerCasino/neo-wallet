@@ -11,6 +11,7 @@ import logger from './logger';
 import helpers from './utils';
 import config from '../config/production';
 import Big from 'big.js';
+import {getProvider} from './provider'
 
 export default class Neo {
   static save() {
@@ -25,12 +26,23 @@ export default class Neo {
     this.address = addressManager;
     this.txCache.load();
     this.id = 1;
-    this.neoWeb = new rpc.RPCClient(config.HOST);
-    this.neoApi = new api.neoCli.instance(config.HOST);
+    this.rpcProvider;
+
+  }
+  get neoscanProvider() {
+    return new api.neoscan.instance("MainNet");
+  }
+  async init() {
+    await this.initProviders(false);
     this.sweepTimer();
     this.updateBalances();
   }
-
+  async initProviders(newProvider) {
+    this.rpcProvider = await getProvider(newProvider);
+    logger.info(`Connecting to ${this.rpcProvider}`)
+    this.neoWeb = new rpc.RPCClient(this.rpcProvider);
+    this.neoApi =  this.neoscanProvider;
+  }
   waitFor(ms) {
     return new Promise(resolve => {
       setTimeout(resolve, ms)
@@ -94,6 +106,7 @@ export default class Neo {
     }
   }
   async transferToMaster(from, sweep = false) {
+    try {
     const { address } = await this.address.getMaster();
     const privateKey = await this.address.getPriv(from);
     let { balance } = await this.getBalance(from);
@@ -110,6 +123,9 @@ export default class Neo {
       logger.info('Manually sweep the balance if you want to transfer');
       return false
     }
+    }catch(e) {
+      logger.error(e);
+    }
   }
 
   async sendNeo(to, amount, from, privateKey) {
@@ -117,34 +133,38 @@ export default class Neo {
       const intents = api.makeIntent({ NEO: amount }, to);
       const account = new wallet.Account(privateKey);
       const result = await Neon.sendAsset({ api: this.neoApi, account, intents });
+      this.claimGas();
       return result.response;
-    } catch (e) {
+    } catch (e) { 
       logger.error(e)
     }
   }
   async claimGas() {
     try {
-      const { privateKey, address } = await this.address.getMaster();
+      const { privateKey } = await this.address.getMaster();
       const config = {
         api: this.neoApi,
-        account: new wallet.Account(privateKey),
-        privateKey: privateKey
+        account: new wallet.Account(privateKey)
       }
-      const result = api.claimGas(config)
+      const result = await Neon.claimGas(config)
       return result.response;
     } catch (e) {
-      logger.error(e)
+      if(e.message == "No Claims found") {
+        logger.info("No claims found")
+      } else {
+        logger.error(e)
+      }
+      
     }
   }
 
-  async send(to, amount) {
+  async send(to, amount, force = false) {
     try {
       const { privateKey, address } = await this.address.getMaster();
       const balance = parseFloat(Big(await this.getMasterBalance()).minus(amount));
-      if (balance <= 0) {
+      if (!force && balance <= 0) {
         return [false]
       }
-
       if (address === to) {
         return [false]
       }
@@ -298,7 +318,7 @@ export default class Neo {
       }
       if (latestBlock > block && (latestBlock - block) > 2) {
         if ((latestBlock - block) > 5) {
-          latestBlock = block + Math.min((latestBlock - block), 100);
+          latestBlock = block + Math.min((latestBlock - block), 10);
           synced = false
         }
 
@@ -332,6 +352,7 @@ export default class Neo {
       this.start();
     } catch (e) {
       logger.error(e);
+      await this.initProviders(true);
       this.start();
     }
   }

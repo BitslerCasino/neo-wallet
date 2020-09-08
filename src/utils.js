@@ -21,10 +21,23 @@ const getPubIp = async () => {
 const genKey = () => {
   return crypto.randomBytes(8).toString('hex');
 }
+const delay = t =>
+  new Promise(resolve => {
+    setTimeout(resolve, t)
+  })
+
+const raceAll = (promises, timeoutTime) =>
+  Promise.all(promises.map(p => Promise.race([p, delay(timeoutTime)])))
+
+const rand = () => Math.floor(Math.random() * 10);
+const now = () => new Date().getTime();
 export default {
     truncateTwo,
     hideKey,
     getPubIp,
     genKey,
-    shortid
+    shortid,
+    raceAll,
+    rand,
+    now
 }
