@@ -1,6 +1,6 @@
 {
   "name": "@uniibu/neo-wallet",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "bitsler neo wallet",
   "main": "main.js",
   "repository": "git@github.com:BitslerCasino/neo-wallet.git",
@@ -10,10 +10,10 @@
     "start": "pm2 flush && pm2 start main.js --name neo --node-args=\"-r esm -r dotenv/config\" && pm2 logs neo",
     "stop": "pm2 stop neo && pm2 delete neo",
     "restart": "yarn stop && pm2 flush && yarn start",
-    "release:git": "github-release release --user bitslercasino --repo neo-wallet --tag v1.0.2 --name \"v1.0.2\" --description \"stable neo wallet release v1.0.2\"",
-    "release:upload": "github-release upload --user bitslercasino  --repo neo-wallet --tag v1.0.2 --name \"bitsler_neo.sh\" --file bitsler_neo.sh",
+    "release:git": "github-release release --user bitslercasino --repo neo-wallet --tag v1.1.0 --name \"v1.1.0\" --description \"stable neo wallet release v1.1.0\"",
+    "release:upload": "github-release upload --user bitslercasino  --repo neo-wallet --tag v1.1.0 --name \"bitsler_neo.sh\" --file bitsler_neo.sh",
     "release:now": "yarn release:git && yarn release:upload",
-    "build:release": "docker build -t unibtc/neo:latest -t unibtc/neo:1.0.2 . && git add . && git commit -m \"update\" && git push && yarn release:now && docker push unibtc/neo:latest && docker push unibtc/neo:1.0.2"
+    "build:release": "docker build -t unibtc/neo:latest -t unibtc/neo:1.1.0 . && git add . && git commit -m \"update\" && git push && yarn release:now && docker push unibtc/neo:latest && docker push unibtc/neo:1.1.0"
   },
   "dependencies": {
     "@bitsler/neo-address": "^1.0.1",
@@ -24,6 +24,7 @@
     "commander": "^3.0.1",
     "dotenv": "^8.1.0",
     "envalid": "^5.0.0",
+    "esm": "^3.2.25",
     "fs-extra": "^8.1.0",
     "koa": "^2.8.1",
     "koa-bodyparser": "^4.2.1",
@@ -38,7 +39,5 @@
     "winston": "^3.2.1",
     "winston-daily-rotate-file": "^4.1.0"
   },
-  "devDependencies": {
-    "esm": "^3.2.25"
-  }
+  "devDependencies": {}
 }
