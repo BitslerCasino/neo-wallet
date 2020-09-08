@@ -73,7 +73,7 @@ export default class Neo {
       const res = await this.getAllAddress({ withBalance: false });
       for (const addr of res) {
         let { balance } = await this.getBalance(addr.address);
-        await this.address.setBalance(addr.address, balance);
+        await this.address.setBalance(addr.address, balance||0);
       }
       this.state = 'ready';
       await this.waitFor(75000);
