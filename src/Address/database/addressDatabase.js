@@ -31,6 +31,7 @@ class AddressStore {
       const r = await this.db.get(...args);
       return r;
     } catch (e) {
+      console.error(e)
       return false;
     }
   }
