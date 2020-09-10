@@ -31,6 +31,11 @@ const raceAll = (promises, timeoutTime) =>
 
 const rand = () => Math.floor(Math.random() * 10);
 const now = () => new Date().getTime();
+const getFromObj = (nestedObj, ...args) => {
+  return args.reduce(
+    (obj, key) => (obj && obj[key] !== 'undefined' ? obj[key] : null), nestedObj)
+}
+
 export default {
     truncateTwo,
     hideKey,
@@ -39,5 +44,7 @@ export default {
     shortid,
     raceAll,
     rand,
-    now
+    now,
+    getFromObj,
+    delay
 }

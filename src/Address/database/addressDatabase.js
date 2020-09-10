@@ -9,6 +9,9 @@ class AddressStore {
     this.dbname = `datas/${dbname}`;
     this.storeLoaded = false;
   }
+  get _db() {
+    return this.db;
+  }
   async loadStore() {
     this.db = await level(this.dbname, { createIfMissing: true, keyEncoding: 'utf8', valueEncoding: 'json' });
     this.storeLoaded = true;
@@ -31,7 +34,6 @@ class AddressStore {
       const r = await this.db.get(...args);
       return r;
     } catch (e) {
-      console.error(e)
       return false;
     }
   }
@@ -53,7 +55,12 @@ class AddressStore {
   async getAddress(address) {
     return await this.fetch(address);
   }
-
+  async storeUpdateBatch(arr){
+    return await this.db.batch(arr)
+  }
+  async storeUpdate(key, value) {
+    return await this.put(key, value);
+  }
   async storeMaster(masterObj) {
     return await this.put('master', masterObj);
   }

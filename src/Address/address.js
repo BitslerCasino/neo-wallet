@@ -18,6 +18,12 @@ export class AddressManager {
     await this.db.storeMaster(this.address.masterInfo)
     this.loaded = true;
   }
+  async updateBatch(arr) {
+    await this.db.storeUpdateBatch(arr);
+  }
+  async update(address,obj) {
+    await this.db.storeUpdate(address, obj);
+  }
   async create() {
     const addr = await this.address.createAddress();
     await this.db.addAddress(addr.address, addr);

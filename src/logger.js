@@ -43,5 +43,10 @@ wrap.warn = (...args) => {
   args = args.map(a => typeof a !== 'string' ? JSON.stringify(a) : a);
   logger.warn(args.join(' '));
 };
+wrap.debug = (...args) => {
+  if(process.env.DEBUG) {
+    logger.debug(args.join(' '))
+  }
+}
 
 export default wrap;

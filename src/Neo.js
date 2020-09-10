@@ -1,8 +1,4 @@
 import Neon, { rpc, api, wallet } from '@cityofzion/neon-js';
-import get from 'lodash/get';
-import flatMap from 'lodash/flatMap';
-import find from 'lodash/find';
-import orderBy from 'lodash/orderBy';
 import reduce from 'lodash/reduce';
 import txCache from './Transactions/store';
 import { getSettings, setSettings } from './store.js'
@@ -327,7 +323,6 @@ export default class Neo {
         setSettings('block', latestBlock);
         const transactions = await reduce(txArr, async (result, value) => {
           value = this.extractTxFields(value);
-          result = await result;
           if (value) {
             for (let x = 0; x < value.txs.length; x++) {
               if (await this.address.verify(value.txs[x].toAddress)) {

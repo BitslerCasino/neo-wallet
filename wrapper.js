@@ -1,5 +1,4 @@
 
-
 import { AddressManager, generateMnemonic } from './src/Address/address'
 import Neo from './src/Neo';
 import api from './src/api';
