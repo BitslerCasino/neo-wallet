@@ -61,6 +61,11 @@ function apiStart(neo) {
     const payload = await neo.getNewAddress();
     ctx.body = { success: true, data: payload };
   })
+  router.get('/getblocknumber', async ctx => {
+    logger.info('RPC /getblocknumber was called');
+    const payload = neo.getBlockNumber();
+    ctx.body = { success: true, data: payload };
+  })
   router.get('/balance', async ctx => {
     logger.info('RPC /balance was called', ctx.request.query);
     const bal = await neo.getMasterBalance();

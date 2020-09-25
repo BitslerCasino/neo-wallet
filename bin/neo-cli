@@ -57,6 +57,18 @@ program
       console.log('Internal Error');
     }
   });
+ program
+  .command('getBlockNumber')
+  .alias('getblocknumber')
+  .description('Get block number')
+  .action(async () => {
+    const r = await reqLocal('getblocknumber');
+    if (r.body.success) {
+      console.log(JSON.stringify(r.body.data,null,2));
+    } else {
+      console.log('Internal Error');
+    }
+  });
 program
   .command('sweep <address>')
   .description('Sweep balance of specific address to master')
