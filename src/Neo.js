@@ -7,7 +7,7 @@ import logger from './logger';
 import helpers from './utils';
 import config from '../config/production';
 import Big from 'big.js';
-import {getProvider} from './provider'
+import { getProvider } from './provider'
 
 export default class Neo {
   static save() {
@@ -33,11 +33,25 @@ export default class Neo {
     this.sweepTimer();
     this.updateBalances();
   }
+
   async initProviders(newProvider) {
-    this.rpcProvider = await getProvider(newProvider);
-    logger.info(`Connecting to ${this.rpcProvider}`)
-    this.neoWeb = new rpc.RPCClient(this.rpcProvider);
-    this.neoApi =  this.neoscanProvider;
+    try {
+      this.rpcProvider = await getProvider(newProvider);
+      if (!this.rpcProvider) {
+        console.log("retrying in 10 seconds")
+        await helpers.delay(10000)
+        await this.initProviders(newProvider)
+      } else {
+        logger.info(`Connecting to ${this.rpcProvider}`)
+        this.neoWeb = new rpc.RPCClient(this.rpcProvider);
+        this.neoApi = this.neoscanProvider;
+      }
+    } catch (e) {
+      console.error(e);
+      console.log("retrying in 10 seconds")
+      await helpers.delay(10000)
+      await this.initProviders(newProvider)
+    }
   }
   waitFor(ms) {
     return new Promise(resolve => {
@@ -69,7 +83,7 @@ export default class Neo {
       const res = await this.getAllAddress({ withBalance: false });
       for (const addr of res) {
         let { balance } = await this.getBalance(addr.address);
-        await this.address.setBalance(addr.address, balance||0);
+        await this.address.setBalance(addr.address, balance || 0);
       }
       this.state = 'ready';
       await this.waitFor(75000);
@@ -103,23 +117,23 @@ export default class Neo {
   }
   async transferToMaster(from, sweep = false) {
     try {
-    const { address } = await this.address.getMaster();
-    const privateKey = await this.address.getPriv(from);
-    let { balance } = await this.getBalance(from);
-    const amount = balance;
-    if (address == from) return false;
-    if (sweep && amount > 0.0001) {
-      logger.info(`Transferring`, amount, 'to Master address', address, 'from', from)
-      const result = await this.sendNeo(address, amount, from, privateKey);
-      await this.address.setBalance(from, parseFloat(Big(balance).minus(amount)))
-      this.claimGas();
-      return result
-    } else {
-      logger.info('Not enough balance to transfer', amount);
-      logger.info('Manually sweep the balance if you want to transfer');
-      return false
-    }
-    }catch(e) {
+      const { address } = await this.address.getMaster();
+      const privateKey = await this.address.getPriv(from);
+      let { balance } = await this.getBalance(from);
+      const amount = balance;
+      if (address == from) return false;
+      if (sweep && amount > 0.0001) {
+        logger.info(`Transferring`, amount, 'to Master address', address, 'from', from)
+        const result = await this.sendNeo(address, amount, from, privateKey);
+        await this.address.setBalance(from, parseFloat(Big(balance).minus(amount)))
+        this.claimGas();
+        return result
+      } else {
+        logger.info('Not enough balance to transfer', amount);
+        logger.info('Manually sweep the balance if you want to transfer');
+        return false
+      }
+    } catch (e) {
       logger.error(e);
     }
   }
@@ -131,7 +145,7 @@ export default class Neo {
       const result = await Neon.sendAsset({ api: this.neoApi, account, intents });
       this.claimGas();
       return result.response;
-    } catch (e) { 
+    } catch (e) {
       logger.error(e)
     }
   }
@@ -145,12 +159,12 @@ export default class Neo {
       const result = await Neon.claimGas(config)
       return result.response;
     } catch (e) {
-      if(e.message == "No Claims found") {
+      if (e.message == "No Claims found") {
         logger.info("No claims found")
       } else {
         logger.error(e)
       }
-      
+
     }
   }
 
