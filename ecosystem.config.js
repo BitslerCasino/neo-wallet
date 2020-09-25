@@ -14,7 +14,10 @@ module.exports = {
   }, {
     "name": "neo-provider-updater",
     "script": "./src/updateProviders.js",
+    "exec_mode": "fork",
+    "instances": 1,
     "autorestart": true,
+    "watch": false,
     "env": {
       "RESTART": "15"
     },
