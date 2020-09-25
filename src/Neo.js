@@ -282,7 +282,9 @@ export default class Neo {
     const res = await this.address.create();
     return res;
   }
-
+  getBlockNumber() {
+    return getSettings('block');
+  }
   async getLatestBlockNumber() {
     const currentBlock = await this.neoWeb.getBlockCount();
     return currentBlock - 1;
@@ -308,12 +310,19 @@ export default class Neo {
       logger.error(e)
     }
   }
-  async getBlockRange(from, to) {
-    const tasks = []
-    for (var i = 0; i <= (to - from); i++) {
-      tasks.push(this.neoWeb.getBlock(from + i))
+  async getBlockRange(from, to, fastSync = false) {
+    let r = [];
+    if (!fastSync) {
+      const tasks = []
+      for (var i = 0; i <= (to - from); i++) {
+        tasks.push(this.neoWeb.getBlock(from + i))
+      }
+      r = await Promise.all(tasks);
+    }else {
+      for (var i = 0; i <= (to - from); i++) {
+         r.push(await this.neoWeb.getBlock(from + i))
+      }
     }
-    let r = await Promise.all(tasks);
     r = r.map(blk => blk.tx.filter(tx => tx.type === 'ContractTransaction'));
     return r.flat();
   }
@@ -326,14 +335,19 @@ export default class Neo {
         logger.info('Starting at the latest block', latestBlock - 5);
         block = latestBlock - 5
       }
+      let fastSync = 10;
       if (latestBlock > block && (latestBlock - block) > 2) {
         if ((latestBlock - block) > 5) {
-          latestBlock = block + Math.min((latestBlock - block), 10);
+          if ((latestBlock - block) > 100) {
+            fastSync = 100;
+            console.log("Fast Sync triggered, Block difference:", latestBlock - block)
+          }
+          latestBlock = block + Math.min((latestBlock - block), fastSync);
           synced = false
         }
-
+        const isFast = fastSync == 100;
         logger.info('syncing', block, '-', latestBlock);
-        const txArr = await this.getBlockRange(block + 1, latestBlock);
+        const txArr = await this.getBlockRange(block + 1, latestBlock, isFast);
         setSettings('block', latestBlock);
         const transactions = await reduce(txArr, async (result, value) => {
           value = this.extractTxFields(value);
