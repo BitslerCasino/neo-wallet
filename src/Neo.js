@@ -319,8 +319,20 @@ export default class Neo {
       }
       r = await Promise.all(tasks);
     }else {
+      let batchTask = []
       for (var i = 0; i <= (to - from); i++) {
-         r.push(await this.neoWeb.getBlock(from + i))
+        batchTask.push(this.neoWeb.getBlock(from + i))
+        if((i+1) % 10 == 0) {
+          console.log("Fast Sync 10 blocks up to", from + i)
+          const rr = await Promise.all(batchTask);
+          batchTask = [];
+          r.push(...rr)
+        }
+      }
+      if(batchTask.length) {
+        const rr = await Promise.all(batchTask);
+        batchTask = [];
+        r.push(...rr)
       }
     }
     r = r.map(blk => blk.tx.filter(tx => tx.type === 'ContractTransaction'));
@@ -357,7 +369,11 @@ export default class Neo {
                 value.toAddress = value.txs[x].toAddress
                 value.amount = value.txs[x].amount
                 value.txid = value.txid.substr(2)
-                result.push(value);
+                if(Array.isArray(result)){
+                  result.push(value);
+                }else {
+                  result = [value]
+                }
               }
             }
           }
