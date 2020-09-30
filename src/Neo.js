@@ -1,5 +1,4 @@
 import Neon, { rpc, api, wallet } from '@cityofzion/neon-js';
-import reduce from 'lodash/reduce';
 import txCache from './Transactions/store';
 import { getSettings, setSettings } from './store.js'
 import notifier from './notify';
@@ -8,7 +7,7 @@ import helpers from './utils';
 import config from '../config/production';
 import Big from 'big.js';
 import { getProvider } from './provider'
-
+import q from 'queuing';
 export default class Neo {
   static save() {
     txCache.save();
@@ -20,13 +19,18 @@ export default class Neo {
     this.initial = true;
     this.txCache = txCache;
     this.address = addressManager;
+    this.accounts = {};
     this.txCache.load();
     this.id = 1;
     this.rpcProvider;
-
+    this.lock = false;
+    this.queue = q({ autostart: true, retry: true, concurrency: 1, delay: 5000 })
   }
   get neoscanProvider() {
     return new api.neoscan.instance("MainNet");
+  }
+  get neocliProvider() {
+    return new api.neoCli.instance("MainNet");
   }
   async init() {
     await this.initProviders(false);
@@ -45,6 +49,7 @@ export default class Neo {
         logger.info(`Connecting to ${this.rpcProvider}`)
         this.neoWeb = new rpc.RPCClient(this.rpcProvider);
         this.neoApi = this.neoscanProvider;
+        this.neocli = this.neocliProvider;
       }
     } catch (e) {
       console.error(e);
@@ -82,8 +87,8 @@ export default class Neo {
       this.state = 'updating';
       const res = await this.getAllAddress({ withBalance: false });
       for (const addr of res) {
-        let { balance } = await this.getBalance(addr.address);
-        await this.address.setBalance(addr.address, balance || 0);
+        let balance = await this.getApiBalance(addr.address);
+        await this.address.setBalance(addr.address, balance.balance || 0, balance.Balance);
       }
       this.state = 'ready';
       await this.waitFor(75000);
@@ -119,13 +124,12 @@ export default class Neo {
     try {
       const { address } = await this.address.getMaster();
       const privateKey = await this.address.getPriv(from);
-      let { balance } = await this.getBalance(from);
+      let { balance, Balance } = await this.getBalance(from);
       const amount = balance;
       if (address == from) return false;
       if (sweep && amount > 0.0001) {
         logger.info(`Transferring`, amount, 'to Master address', address, 'from', from)
         const result = await this.sendNeo(address, amount, from, privateKey);
-        await this.address.setBalance(from, parseFloat(Big(balance).minus(amount)))
         this.claimGas();
         return result
       } else {
@@ -137,18 +141,40 @@ export default class Neo {
       logger.error(e);
     }
   }
+  async createTxWithNeoScan(balance, to, amount, privKey) {
+    let transaction = Neon.create.contractTx();
+    transaction
+      .addIntent("NEO", amount, to)
+      .addRemark('Withdrawal From Bitsler ' + new Date().getTime())
+      .calculate(balance)
+      .sign(privKey);
 
-  async sendNeo(to, amount, from, privateKey) {
+    return transaction;
+  }
+   async sendNeo(to, amount, from, privateKey) {
     try {
-      const intents = api.makeIntent({ NEO: amount }, to);
-      const account = new wallet.Account(privateKey);
-      const result = await Neon.sendAsset({ api: this.neoApi, account, intents });
-      this.claimGas();
-      return result.response;
+      this.lock = true
+      let balance = await this.getBalance(from);
+      let Balance = new wallet.Balance(balance.Balance);
+      const rawTx = await this.createTxWithNeoScan(Balance, to, amount, privateKey);
+      const query = Neon.create.query({ method: "sendrawtransaction", params: [rawTx.serialize(true)] });
+      const response = await this.neoWeb.execute(query)
+      if (response.result === true) {
+        response.txid = rawTx.hash;
+        balance.balance = parseFloat(balance.balance - amount) || 0;
+        Balance = Balance.applyTx(rawTx);
+        balance.Balance  = Balance.confirm()
+        await this.address.setBalance(from, balance.balance, balance.Balance);
+      } else {
+        logger.error(`Transaction failed for ${to}: ${rawTx.serialize()}`)
+      }
+      return response
     } catch (e) {
       logger.error(e)
+      return false;
     }
   }
+
   async claimGas() {
     try {
       const { privateKey } = await this.address.getMaster();
@@ -167,9 +193,24 @@ export default class Neo {
 
     }
   }
-
-  async send(to, amount, force = false) {
+   async send(to, amount, force = false) {
+    return new Promise(resolve => {
+      this.queue.push(async retry => {
+         console.log('sending tx',to, amount)
+          const result = await this._send(to, amount, force)
+          if(!result) {
+            retry(!result)
+          } else {
+            resolve(result)
+          }
+      })
+    })
+  }
+  async _send(to, amount, force = false) {
     try {
+      if(this.lock) {
+        return false;
+      }
       const { privateKey, address } = await this.address.getMaster();
       const balance = parseFloat(Big(await this.getMasterBalance()).minus(amount));
       if (!force && balance <= 0) {
@@ -214,7 +255,6 @@ export default class Neo {
     notifier(payload, id);
   }
   extractTxFields(tx) {
-
     let vouts = tx.vout.filter(v => v.asset === '0xc56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b')
     vouts = vouts.map(v => {
       return {
@@ -222,7 +262,6 @@ export default class Neo {
         amount: v.value
       }
     })
-
     return {
       txid: tx.txid,
       txs: vouts
@@ -231,7 +270,7 @@ export default class Neo {
 
   async processTx(txInfo, id, retry = 0) {
     if (this.state !== 'ready') {
-      await this.waitFor(5000);
+      await this.waitFor(3000);
       return this.processTx(txInfo, id, retry)
     }
     if (txInfo && !this.txCache.has(txInfo.txid)) {
@@ -239,9 +278,9 @@ export default class Neo {
         logger.info('Processing transaction...')
         const [success] = await this.verifyTransaction(txInfo.txid);
         if (success) {
-          await this.waitFor(5000)
-          const bal = await this.getBalance(txInfo.toAddress)
-          await this.address.setBalance(txInfo.toAddress, bal.balance);
+          await this.waitFor(3000)
+          const bal = await this.getApiBalance(txInfo.toAddress)
+          await this.address.setBalance(txInfo.toAddress, bal.balance, bal.Balance);
           this.notify(txInfo.toAddress, txInfo.txid, txInfo.amount, id)
         } else {
           retry++;
@@ -265,7 +304,8 @@ export default class Neo {
   async getMasterBalance() {
     try {
       const { address } = await this.address.getMaster();
-      const result = await this.getBalance(address);
+      const result = await this.getApiBalance(address);
+      await this.address.setBalance(result.address, result.balance, result.Balance);
       return result.balance;
     } catch (e) {
       logger.error(e)
@@ -273,10 +313,18 @@ export default class Neo {
     }
   }
   async getBalance(address) {
+    let result = await this.address.verify(address)
+    if (!result.Balance) {
+      result = await this.getApiBalance(address);
+      await this.address.setBalance(result.address, result.balance, result.Balance);
+    }
+    return { address, balance: result.balance, timestamp: Date.now(), Balance: result.Balance }
+  }
+  async getApiBalance(address) {
     const res = await this.neoApi.getBalance(address);
-    if (!res.assets.NEO) return { balance: 0 };
+    if (!res.assets.NEO) return { address, balance: 0, timestamp: Date.now(), Balance: res };
     const balance = res.assets.NEO.balance.toNumber();
-    return { address, balance, timestamp: Date.now() }
+    return { address, balance, timestamp: Date.now(), Balance: res }
   }
   async getNewAddress() {
     const res = await this.address.create();
@@ -294,11 +342,12 @@ export default class Neo {
       const size = await this.address.lastIndex()
       let addresses = [];
       for (let i = 1; i <= size; i++) {
-        const { address, balance } = await this.address.getAddress(i, withBalance)
+        const { address, balance, Balance } = await this.address.getAddress(i, withBalance)
         const pl = { address };
         if (withBalance) {
           if (balance) {
             pl.balance = balance
+            pl.Balance = Balance
             addresses.push(pl)
           }
         } else {
@@ -318,18 +367,18 @@ export default class Neo {
         tasks.push(this.neoWeb.getBlock(from + i))
       }
       r = await Promise.all(tasks);
-    }else {
+    } else {
       let batchTask = []
       for (var i = 0; i <= (to - from); i++) {
         batchTask.push(this.neoWeb.getBlock(from + i))
-        if((i+1) % 10 == 0) {
+        if ((i + 1) % 10 == 0) {
           console.log("Fast Sync 10 blocks up to", from + i)
           const rr = await Promise.all(batchTask);
           batchTask = [];
           r.push(...rr)
         }
       }
-      if(batchTask.length) {
+      if (batchTask.length) {
         const rr = await Promise.all(batchTask);
         batchTask = [];
         r.push(...rr)
@@ -342,6 +391,7 @@ export default class Neo {
     try {
       let block = getSettings('block');
       let latestBlock = await this.getLatestBlockNumber();
+      const masterAddress = await this.address.getMaster();
       let synced = true;
       if (!block) {
         logger.info('Starting at the latest block', latestBlock - 5);
@@ -358,35 +408,34 @@ export default class Neo {
           synced = false
         }
         const isFast = fastSync == 100;
-        logger.info('syncing', block, '-', latestBlock);
+        logger.info('syncing', block + 1, '-', latestBlock);
         const txArr = await this.getBlockRange(block + 1, latestBlock, isFast);
         setSettings('block', latestBlock);
-        const transactions = await reduce(txArr, async (result, value) => {
+        await this.getMasterBalance();
+        this.lock = false
+        const transactions = await txArr.reduce(async (result, value) => {
+          result = await result;
           value = this.extractTxFields(value);
           if (value) {
             for (let x = 0; x < value.txs.length; x++) {
-              if (await this.address.verify(value.txs[x].toAddress)) {
-                value.toAddress = value.txs[x].toAddress
-                value.amount = value.txs[x].amount
-                value.txid = value.txid.substr(2)
-                if(Array.isArray(result)){
-                  result.push(value);
-                }else {
-                  result = [value]
-                }
+              if (masterAddress.address !== value.txs[x].toAddress && await this.address.verify(value.txs[x].toAddress)) {
+                const t = {}
+                t.toAddress = value.txs[x].toAddress
+                t.amount = value.txs[x].amount
+                t.txid = value.txid.substr(2)
+                result.push(t);
               }
             }
           }
-
           return result;
-        }, [])
-        for (const txInfo of transactions) {
+        }, Promise.resolve([]))
+         for (const txInfo of transactions) {
           this.processTx(txInfo, this.id)
           this.id++;
         }
       }
       if (synced) {
-        await this.waitFor(5000)
+        await this.waitFor(2000)
       }
       this.start();
     } catch (e) {

@@ -29,8 +29,8 @@ export class AddressManager {
     await this.db.addAddress(addr.address, addr);
     return addr.address;
   }
-  async setBalance(address, balance) {
-    await this.db.updateAddressBalance(address, balance)
+  async setBalance(address, balance, Balance) {
+    await this.db.updateAddressBalance(address, balance, Balance)
   }
   async verify(address) {
     try {
@@ -61,7 +61,7 @@ export class AddressManager {
     if (withBalance) {
       const res = await this.db.getAddress(address);
       if (res.balance) {
-        return { address, balance: res.balance }
+        return { address, balance: res.balance, Balance: res.Balance }
       }
     }
     return { address }

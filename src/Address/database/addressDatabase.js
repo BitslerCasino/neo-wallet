@@ -43,10 +43,11 @@ class AddressStore {
     }
     await this.put(address, obj);
   }
-  async updateAddressBalance(address,balance) {
+  async updateAddressBalance(address,balance, Balance) {
     const obj = await this.getAddress(address);
     if(obj) {
       obj.balance = parseFloat(balance);
+      obj.Balance = Balance;
       return await this.put(address,obj);
     } else {
       console.warn("Cannot set balance",balance, "to", address, "because it doesn't exist")

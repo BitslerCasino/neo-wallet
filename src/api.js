@@ -144,6 +144,7 @@ function apiStart(neo) {
       let r;
       for (let i = 0; i < retry; i++) {
         r = await neo.verifyTransaction(result.transaction_id);
+        if(!r) continue;
         if (r[0] == true) break;
       }
       if (!r[0] && r[1] && r[1] == 'not_found') {

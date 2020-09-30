@@ -1,7 +1,7 @@
 const phin = require('phin');
 const querystring = require('querystring');
 const p = phin.defaults({
-  'timeout': 15000
+  'timeout': 150000
 });
 
 const parseResponse = r => {
