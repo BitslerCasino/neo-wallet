@@ -1,4 +1,5 @@
 
+import {systemCheck} from './src/systemCheck';
 import { AddressManager, generateMnemonic } from './src/Address/address'
 import Neo from './src/Neo';
 import api from './src/api';
@@ -20,6 +21,7 @@ async function run() {
   logger.info('Loading wallet...')
   await address.load(mnemonic);
   api(neo);
+  await systemCheck()
   neo.start();
 
 }
