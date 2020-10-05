@@ -6,7 +6,7 @@ let timer = 0;
 
 async function getUpdatedProviders() {
   try {
-    const result = await request.getter('http://monitor.cityofzion.io/mainnet.json');
+    const result = await request.getter('https://monitor.cityofzion.io/mainnet.json');
     if(result.body.sites.length) {
       await fs.outputJson(mainnet, result.body)
       console.log("Providers updated!")

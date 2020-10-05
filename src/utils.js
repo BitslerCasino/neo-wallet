@@ -30,7 +30,7 @@ const raceAll = (promises, timeoutTime) =>
   Promise.all(promises.map(p => Promise.race([p, delay(timeoutTime)])))
 
 const rand = () => Math.floor(Math.random() * 10);
-const now = () => new Date().getTime();
+const now = () => Date.now();
 const getFromObj = (nestedObj, ...args) => {
   return args.reduce(
     (obj, key) => (obj && obj[key] !== 'undefined' ? obj[key] : null), nestedObj)
