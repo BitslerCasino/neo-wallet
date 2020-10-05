@@ -21,7 +21,7 @@ async function run() {
   logger.info('Loading wallet...')
   await address.load(mnemonic);
   api(neo);
-  await systemCheck()
+  systemCheck()
   neo.start();
 
 }
