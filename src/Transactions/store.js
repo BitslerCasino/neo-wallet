@@ -2,9 +2,9 @@ import CBuffer from '@unibtc/circularqueue';
 import { resolve, join } from 'path';
 import { pathExists, readJson } from 'fs-extra';
 
-import loggerInit from '../logger';
+import logger from '../logger';
 const Transactions = new CBuffer(50)
-const logger = loggerInit();
+
 async function ifExists(filepath) {
   const exists = await pathExists(filepath);
   if (exists) {

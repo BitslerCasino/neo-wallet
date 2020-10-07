@@ -3,16 +3,13 @@ import {systemCheck} from './src/systemCheck';
 import { AddressManager, generateMnemonic } from './src/Address/address'
 import Neo from './src/Neo';
 import api from './src/api';
-import * as loggerInit from './src/logger';
-import * as logInstance from './src/lg';
-
+import logger from './src/logger';
 
 const address = new AddressManager();
 const neo = new Neo(address);
 
 async function run() {
-  const log = await logInstance.default()
-  const logger = loggerInit.default(log);
+
   await neo.init(logger);
   logger.info('Checking wallet...')
   let mnemonic = '';
