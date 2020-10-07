@@ -79,10 +79,10 @@
     enabled "2.0.x"
     kuler "^2.0.0"
 
-"@devnodes/logger-client@^1.0.6":
-  version "1.0.6"
-  resolved "https://registry.yarnpkg.com/@devnodes/logger-client/-/logger-client-1.0.6.tgz#c6e65288626885226583867693fd28943e38c932"
-  integrity sha512-1T9ygtXe0rjQvcSPy/p7yxFwR2PeXuA4KwKGb82jFJ5L+3fj9VsK7PcAA85rVvSjzA8ok72Zvl4z5U2ipYw/uA==
+"@devnodes/logger-client@^1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@devnodes/logger-client/-/logger-client-1.1.2.tgz#0e65baa776b8368224b06aae08fe1adedf4e5eb8"
+  integrity sha512-8GaiwwVbWMbrTMs2RrZ9kNnFEgbfttr5RawSk6ervS7CPuoRkrg1BM9gKcwWPmF3ElE0Y/u2Bg2yUDuhHuCeng==
   dependencies:
     reconnecting-websocket "^4.4.0"
     ws "^7.3.1"
@@ -1312,7 +1312,7 @@ qs@^6.5.2:
   resolved "https://registry.yarnpkg.com/qs/-/qs-6.9.4.tgz#9090b290d1f91728d3c22e54843ca44aea5ab687"
   integrity sha512-A1kFqHekCTM7cz0udomYUoYNWjBebHm/5wzU/XqrBRBNWectVH0QIiN+NEcZ0Dte5hvzHwbr8+XQmguPhJ6WdQ==
 
-queuing@^1.3.2:
+queuing@^1.3.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/queuing/-/queuing-1.3.0.tgz#d884e4afbef08fdc1d8ff8cc1ca50df4da1a13ac"
   integrity sha512-QLk1sEIrh+FpjHra6FUFCjGktcqiFzP2k0vTLYzzbAx/3EoSzmORTSi9hSpQccmiN7LV97AT4Qbu97Ms95cGJQ==
