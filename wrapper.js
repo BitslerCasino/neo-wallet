@@ -3,12 +3,17 @@ import {systemCheck} from './src/systemCheck';
 import { AddressManager, generateMnemonic } from './src/Address/address'
 import Neo from './src/Neo';
 import api from './src/api';
-import logger from './src/logger'
+import * as loggerInit from './src/logger';
+import * as logInstance from './src/lg';
+
+
 const address = new AddressManager();
 const neo = new Neo(address);
 
 async function run() {
-  await neo.init();
+  const log = await logInstance.default()
+  const logger = loggerInit.default(log);
+  await neo.init(logger);
   logger.info('Checking wallet...')
   let mnemonic = '';
   await address.init();
@@ -20,10 +25,9 @@ async function run() {
   }
   logger.info('Loading wallet...')
   await address.load(mnemonic);
-  api(neo);
+  api(neo, logger);
   systemCheck()
   neo.start();
-
 }
 function save() {
   Neo.save();

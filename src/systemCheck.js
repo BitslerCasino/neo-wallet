@@ -1,10 +1,10 @@
 
 import { api } from '@cityofzion/neon-js';
 import helpers from "./utils"
-import logger from './logger';
+import loggerInit from './logger';
 import { AddressManager } from './Address/address'
 const address = new AddressManager();
-
+const logger = loggerInit();
 async function systemCheck() {
   const neoscan = new api.neoscan.instance("MainNet");
   await address.init();

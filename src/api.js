@@ -2,12 +2,11 @@ import Koa from 'koa';
 import Router from 'koa-router';
 import bouncer from 'koa-bouncer';
 import bodyParser from 'koa-bodyparser';
-import logger from './logger';
 import { getSettings, setSettings } from './store.js'
 import helpers from './utils';
 import config from '../config/production';
 
-function apiStart(neo) {
+function apiStart(neo, logger) {
   const secret = getSettings('secret');
   if (!secret) {
     setSettings('secret', helpers.genKey());

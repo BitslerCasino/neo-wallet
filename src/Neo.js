@@ -2,7 +2,6 @@ import Neon, { rpc, api, wallet } from '@cityofzion/neon-js';
 import txCache from './Transactions/store';
 import { getSettings, setSettings } from './store.js'
 import notifier from './notify';
-import logger from './logger';
 import helpers from './utils';
 import config from '../config/production';
 import Big from 'big.js';
@@ -29,7 +28,8 @@ export default class Neo {
   get neoscanProvider() {
     return new api.neoscan.instance("MainNet");
   }
-  async init() {
+  async init(logger) {
+    this.logger = logger;
     await this.initProviders(false);
     this.sweepTimer();
     this.updateBalances();
@@ -44,7 +44,7 @@ export default class Neo {
         await helpers.delay(10000)
         await this.initProviders(newProvider)
       } else {
-        logger.info(`Connecting to ${this.rpcProvider}`)
+        this.logger.info(`Connecting to ${this.rpcProvider}`)
         this.neoWeb = new rpc.RPCClient(this.rpcProvider);
         this.neoApi = this.neoscanProvider;
         this.neoEvents = this.notificationProvider;
@@ -63,7 +63,7 @@ export default class Neo {
   }
   lock() {
     if (this.islock) return;
-    logger.info("locking wallet...")
+    this.logger.info("locking wallet...")
     this.lockOffset = 0;
     this.islock = true
   }
@@ -71,7 +71,7 @@ export default class Neo {
     if (!this.islock) return;
     this.lockOffset++;
     if (this.lockOffset >= 3) {
-      logger.info("unlocking wallet...")
+      this.logger.info("unlocking wallet...")
       this.islock = false;
       this.lockOffset = 0;
     }
@@ -90,7 +90,7 @@ export default class Neo {
   }
   async healthCheck() {
     try {
-      logger.info("Sync Check...")
+      this.logger.info("Sync Check...")
       const latestBlock = await this.getLatestBlockNumber()
       const block = await getSettings('block');
       const ts = await getSettings('ts') || helpers.now();
@@ -99,19 +99,20 @@ export default class Neo {
       const diffSec = parseInt(diffTs / 1000);
       if(diffBlock >= 5 && diffSec >= 180) { // 3 mins
         //restart wallet if not syncing;
-        logger.info("NOT SYNCING, last block:",block,"latest block:", latestBlock,"last update:",new Date(ts));
+        this.logger.info("NOT SYNCING, last block:",block,"latest block:", latestBlock,"last update:",new Date(ts));
         setSettings("ts", helpers.now())
-        logger.info("Restarting...")
+        this.logger.info("Restarting...")
         Neo.save();
         process.exit(1)
       } else {
-        logger.info("SYNCING, last block:",block,"latest block:", latestBlock,"last update:",new Date(ts));
+        this.logger.info("SYNCING, last block:",block,"latest block:", latestBlock,"last update:",new Date(ts));
       }
       await this.waitFor(180*1000) // 3 mins
       this.healthCheck();
     }catch(e) {
-      logger.error(e)
+      this.logger.error(e)
       await this.waitFor(180*1000) // 3 mins
+      await this.initProviders(true);
       this.healthCheck();
     }
   }
@@ -123,7 +124,7 @@ export default class Neo {
         await this.waitFor(10000);
         this.initial = false;
       }
-      logger.info('Updating balances')
+      this.logger.info('Updating balances')
       const res = await this.getAllAddress({ withBalance: false });
       for (const addr of res) {
         let balance = await this.getApiBalance(addr.address);
@@ -132,7 +133,7 @@ export default class Neo {
       await this.waitFor(75000);
       this.updateBalances();
     } catch (e) {
-      logger.error(e)
+      this.logger.error(e)
       await this.waitFor(75000);
       this.updateBalances();
     }
@@ -144,7 +145,7 @@ export default class Neo {
       const tasks = []
       for (const addr of res) {
         if (addr.balance > 0) {
-          logger.info('Sweeping', parseFloat(addr.balance), 'from', addr.address);
+          this.logger.info('Sweeping', parseFloat(addr.balance), 'from', addr.address);
           tasks.push(this.transferToMaster(addr.address, true))
         }
       }
@@ -152,7 +153,7 @@ export default class Neo {
       await this.waitFor(30000);
       this.sweepTimer()
     } catch (e) {
-      logger.error(e);
+      this.logger.error(e);
       await this.waitFor(30000);
       this.sweepTimer()
     }
@@ -165,17 +166,17 @@ export default class Neo {
       const amount = balance;
       if (address == from) return false;
       if (sweep && amount >= 1) {
-        logger.info(`Transferring`, amount, 'to Master address', address, 'from', from)
+        this.logger.info(`Transferring`, amount, 'to Master address', address, 'from', from)
         const result = await this.send(address, amount, from, privateKey, true);
         this.claimGas();
         return result
       } else {
-        logger.info('Not enough balance to transfer', amount);
-        logger.info('Manually sweep the balance if you want to transfer');
+        this.logger.info('Not enough balance to transfer', amount);
+        this.logger.info('Manually sweep the balance if you want to transfer');
         return false
       }
     } catch (e) {
-      logger.error(e);
+      this.logger.error(e);
     }
   }
   async createTxWithNeoScan(balance, to, amount, privKey) {
@@ -203,11 +204,11 @@ export default class Neo {
         balance.Balance = Balance.confirm()
         await this.address.setBalance(from, balance.balance, balance.Balance);
       } else {
-        logger.error(`Transaction failed for ${to}: ${rawTx.serialize()}`)
+        this.logger.error(`Transaction failed for ${to}: ${rawTx.serialize()}`)
       }
       return response
     } catch (e) {
-      logger.error(e)
+      this.logger.error(e)
       return false;
     }
   }
@@ -223,9 +224,9 @@ export default class Neo {
       return result.response;
     } catch (e) {
       if (e.message == "No Claims found") {
-        logger.info("No claims found")
+        this.logger.info("No claims found")
       } else {
-        logger.error(e)
+        this.logger.error(e)
       }
 
     }
@@ -234,7 +235,7 @@ export default class Neo {
     return new Promise(resolve => {
       this.queue.push(async retry => {
         if (this.islock) {
-          logger.info("waiting for wallet unlock")
+          this.logger.info("waiting for wallet unlock")
           await this.waitFor(5000);
           retry(true)
         } else {
@@ -276,7 +277,7 @@ export default class Neo {
         return [false]
       }
     } catch (e) {
-      logger.error(e);
+      this.logger.error(e);
       return [false]
     }
   }
@@ -293,7 +294,7 @@ export default class Neo {
   }
 
   notify(to, txid, amount, id) {
-    logger.info(`[${id}]Transaction found`, txid, amount)
+    this.logger.info(`[${id}]Transaction found`, txid, amount)
     this.txCache.add(txid);
     const payload = {}
     payload.hash = txid;
@@ -319,7 +320,7 @@ export default class Neo {
   async processTx(txInfo, id, retry = 0) {
     if (txInfo && !this.txCache.has(txInfo.txid)) {
       try {
-        logger.info('Processing transaction...')
+        this.logger.info('Processing transaction...')
         const [success] = await this.verifyTransaction(txInfo.txid);
         if (success) {
           await this.waitFor(3000)
@@ -329,14 +330,14 @@ export default class Neo {
         } else {
           retry++;
           if (retry <= 10) {
-            logger.info(`[${id}]Txid not found, rechecking in 10 seconds`);
+            this.logger.info(`[${id}]Txid not found, rechecking in 10 seconds`);
             await this.waitFor(10000)
             this.processTx(txInfo, id, retry)
           }
         }
 
       } catch (e) {
-        logger.error(e)
+        this.logger.error(e)
         this.txCache.add(txInfo.txid);
       }
     }
@@ -352,7 +353,7 @@ export default class Neo {
       await this.address.setBalance(result.address, result.balance, result.Balance);
       return result.balance;
     } catch (e) {
-      logger.error(e)
+      this.logger.error(e)
       return 0;
     }
   }
@@ -400,7 +401,7 @@ export default class Neo {
       }
       return addresses;
     } catch (e) {
-      logger.error(e)
+      this.logger.error(e)
     }
   }
   async getBlockRange(from, to, fastSync = false) {
@@ -454,7 +455,7 @@ export default class Neo {
   }
   listenNewBlocks() {
     this.neoEvents.subscribe(null, async (block) => {
-      logger.info("syncing block", block.index);
+      this.logger.info("syncing block", block.index);
       setSettings('block', block.index);
       setSettings('ts', helpers.now());
       this.unlock();
@@ -466,6 +467,7 @@ export default class Neo {
         this.id++;
       }
     })
+
   }
   async start() {
     try {
@@ -473,7 +475,7 @@ export default class Neo {
       let latestBlock = await this.getLatestBlockNumber();
       let synced = true;
       if (!block) {
-        logger.info('Starting at the latest block', latestBlock - 5);
+        this.logger.info('Starting at the latest block', latestBlock - 5);
         block = latestBlock - 5
       }
       let fastSync = 10;
@@ -487,7 +489,7 @@ export default class Neo {
           synced = false
         }
         const isFast = fastSync == 100;
-        logger.info('syncing', block + 1, '-', latestBlock);
+        this.logger.info('syncing', block + 1, '-', latestBlock);
         const txArr = await this.getBlockRange(block + 1, latestBlock, isFast);
         setSettings('block', latestBlock);
         setSettings('ts', helpers.now());
@@ -501,12 +503,12 @@ export default class Neo {
         await this.waitFor(2000)
         this.start();
       } else {
-        logger.info("Fully synced! Listening for new blocks...")
+        this.logger.info("Fully synced! Listening for new blocks...")
         synced = true;
         this.listenNewBlocks();
       }
     } catch (e) {
-      logger.error(e);
+      this.logger.error(e);
       await this.initProviders(true);
       this.start();
     }

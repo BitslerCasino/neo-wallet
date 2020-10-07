@@ -1,6 +1,6 @@
 {
   "name": "@uniibu/neo-wallet",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "bitsler neo wallet",
   "main": "main.js",
   "repository": "git@github.com:BitslerCasino/neo-wallet.git",
@@ -10,14 +10,15 @@
     "start": "pm2 flush && pm2 start main.js --name neo --node-args=\"-r esm -r dotenv/config\" && pm2 logs neo",
     "stop": "pm2 stop neo && pm2 delete neo",
     "restart": "yarn stop && pm2 flush && yarn start",
-    "release:git": "github-release release --user bitslercasino --repo neo-wallet --tag v1.3.1 --name \"v1.3.1\" --description \"stable neo wallet release v1.3.1\"",
-    "release:upload": "github-release upload --user bitslercasino  --repo neo-wallet --tag v1.3.1 --name \"bitsler_neo.sh\" --file bitsler_neo.sh",
+    "release:git": "github-release release --user bitslercasino --repo neo-wallet --tag v1.3.2 --name \"v1.3.2\" --description \"stable neo wallet release v1.3.2\"",
+    "release:upload": "github-release upload --user bitslercasino  --repo neo-wallet --tag v1.3.2 --name \"bitsler_neo.sh\" --file bitsler_neo.sh",
     "release:now": "yarn release:git && yarn release:upload",
-    "build:release": "docker build --no-cache -t unibtc/neo:latest -t unibtc/neo:1.3.1 . && git add . && git commit -m \"update\" && git push && yarn release:now && docker push unibtc/neo:latest && docker push unibtc/neo:1.3.1"
+    "build:release": "docker build --no-cache -t unibtc/neo:latest -t unibtc/neo:1.3.2 . && git add . && git commit -m \"update\" && git push && yarn release:now && docker push unibtc/neo:latest && docker push unibtc/neo:1.3.2"
   },
   "dependencies": {
     "@bitsler/neo-address": "^1.0.4",
     "@cityofzion/neon-js": "^4.8.1",
+    "@devnodes/logger-client": "^1.0.4",
     "@unibtc/circularqueue": "^1.0.0",
     "app-module-path": "^2.2.0",
     "big.js": "^5.2.2",
@@ -35,7 +36,7 @@
     "lowdb": "^1.0.0",
     "p-queue": "^6.1.1",
     "phin": "^3.4.0",
-    "queuing": "^1.3.1",
+    "queuing": "^1.3.2",
     "winston": "^3.2.1",
     "winston-daily-rotate-file": "^4.1.0"
   },
