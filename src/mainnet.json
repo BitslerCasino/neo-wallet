@@ -1,1 +1,78 @@
-{"name":"MainNet","pollTime":"5000","sites":[{"protocol":"https","url":"mainnet1.neo2.coz.io","location":"United States","port":"443","locale":"us","type":"RPC"},{"protocol":"https","url":"mainnet2.neo2.coz.io","location":"United States","port":"443","locale":"us","type":"RPC"},{"protocol":"https","url":"mainnet3.neo2.coz.io","location":"United States","port":"443","locale":"us","type":"RPC"},{"protocol":"https","url":"node1.nl.neoblocks.org","location":"The Netherlands","port":"443","locale":"nl","type":"RPC"},{"protocol":"https","url":"node2.nl.neoblocks.org","location":"The Netherlands","port":"443","locale":"nl","type":"RPC"},{"service":"neoScan","url":"https://neoscan.io/api/main_net/v1/","location":"United States","address":"104.25.126.31","locale":"us","type":"REST"},{"service":"PubSub","url":"wss://pubsub.main.neologin.io/","location":"Ireland","locale":"ie","type":"WebSockets"},{"protocol":"https","url":"main.neologin.io","location":"Ireland","port":"443","locale":"ie","type":"RPC"},{"protocol":"https","url":"seed1.switcheo.network","location":"Singapore","port":"10331","locale":"sg","type":"RPC"},{"protocol":"https","url":"seed2.switcheo.network","location":"Singapore","port":"10331","locale":"sg","type":"RPC"},{"protocol":"https","url":"seed3.switcheo.network","location":"Singapore","port":"10331","locale":"sg","type":"RPC"},{"protocol":"http","url":"seed1.ngd.network","location":"USA","locale":"us","port":"10332","type":"RPC"},{"protocol":"http","url":"seed2.ngd.network","location":"USA","locale":"us","port":"10332","type":"RPC"},{"protocol":"http","url":"seed3.ngd.network","location":"Hong Kong","locale":"hk","port":"10332","type":"RPC"},{"protocol":"http","url":"seed4.ngd.network","location":"Hong Kong","locale":"hk","port":"10332","type":"RPC"},{"protocol":"http","url":"seed5.ngd.network","location":"China","locale":"cn","port":"10332","type":"RPC"},{"protocol":"http","url":"seed6.ngd.network","location":"USA","locale":"us","port":"10332","type":"RPC"},{"protocol":"http","url":"seed7.ngd.network","location":"USA","locale":"us","port":"10332","type":"RPC"},{"protocol":"http","url":"seed8.ngd.network","location":"USA","locale":"us","port":"10332","type":"RPC"},{"protocol":"http","url":"seed9.ngd.network","location":"Hong Kong","locale":"hk","port":"10332","type":"RPC"},{"protocol":"http","url":"seed10.ngd.network","location":"Hong Kong","locale":"hk","port":"10332","type":"RPC"},{"protocol":"http","url":"seed.neoeconomy.io","location":"Canada","locale":"ca","port":"10332","type":"RPC"},{"protocol":"http","url":"node1.edgeofneo.com","location":"France","locale":"fr","port":"10332","type":"RPC"},{"protocol":"https","url":"explorer.o3node.org","location":"US","locale":"us","port":"443","type":"RPC"},{"protocol":"https","url":"rpc1.go.nspcc.ru","location":"Russia","locale":"ru","port":"10331","type":"RPC"},{"protocol":"https","url":"rpc2.go.nspcc.ru","location":"Russia","locale":"ru","port":"10331","type":"RPC"},{"protocol":"https","url":"rpc3.go.nspcc.ru","location":"Canada","locale":"ca","port":"10331","type":"RPC"},{"protocol":"https","url":"rpc4.go.nspcc.ru","location":"US","locale":"us","port":"10331","type":"RPC"}]}
+[
+    {
+        "url": "https://neonode1.nash.io:443",
+        "height": 7446092
+    },
+    {
+        "url": "https://neonode2.nash.io:443",
+        "height": 7446092
+    },
+    {
+        "url": "https://neonode3.nash.io:443",
+        "height": 7446092
+    },
+    {
+        "url": "https://m1.neo.nash.io:443",
+        "height": 7446092
+    },
+    {
+        "url": "https://m2.neo.nash.io:443",
+        "height": 7446092
+    },
+    {
+        "url": "https://m3.neo.nash.io:443",
+        "height": 7446092
+    },
+    {
+        "url": "https://mainnet1.neo2.coz.io:443",
+        "height": 7446092
+    },
+    {
+        "url": "https://mainnet2.neo2.coz.io:443",
+        "height": 7446092
+    },
+    {
+        "url": "https://mainnet3.neo2.coz.io:443",
+        "height": 7446092
+    },
+    {
+        "url": "https://node1.nl.neoblocks.org:443",
+        "height": 7446092
+    },
+    {
+        "url": "https://node2.nl.neoblocks.org:443",
+        "height": 7446092
+    },
+    {
+        "url": "https://seed2.switcheo.network:10331",
+        "height": 7446092
+    },
+    {
+        "url": "https://seed3.switcheo.network:10331",
+        "height": 7446092
+    },
+    {
+        "url": "http://seed1.ngd.network:10332",
+        "height": 7446092
+    },
+    {
+        "url": "http://seed2.ngd.network:10332",
+        "height": 7446092
+    },
+    {
+        "url": "http://seed3.ngd.network:10332",
+        "height": 7446085
+    },
+    {
+        "url": "http://seed8.ngd.network:10332",
+        "height": 7446092
+    },
+    {
+        "url": "http://seed.neoeconomy.io:10332",
+        "height": 7446090
+    },
+    {
+        "url": "http://node1.edgeofneo.com:10332",
+        "height": 7446090
+    }
+]
