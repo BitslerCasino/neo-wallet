@@ -45,14 +45,14 @@ EOL
 echo Installing NEO Container
 
 docker volume create --name=neo-data
-docker pull unibtc/neo:latest
+docker pull bitsler/neo:latest
 docker run -v neo-data:/usr/src/app --name=neo-node -d \
       -p 10333:10333 \
       -v $HOME/.neo/neo.env:/usr/src/app/.env \
       -v $HOME/.neo/db.json:/usr/src/app/db.json \
       -v $HOME/.neo/datas:/usr/src/app/datas \
       -v $HOME/.neo/logs:/usr/src/app/logs \
-      unibtc/neo:latest
+      bitsler/neo:latest
 
 cat >/usr/bin/neo-cli <<'EOL'
 #!/usr/bin/env bash
@@ -69,8 +69,8 @@ VERSION=$1
 echo "Updating neo to $VERSION"
 sudo docker stop neo-node || true
 sudo docker rm neo-node || true
-sudo docker images -a | grep "unibtc/neo" | awk '{print $3}' | xargs docker rmi
-sudo docker pull unibtc/neo:$VERSION
+sudo docker images -a | grep "bitsler/neo" | awk '{print $3}' | xargs docker rmi
+sudo docker pull bitsler/neo:$VERSION
 sudo rm -rf ~/docker/volumes/neo-data  || true
 sudo docker volume rm neo-data
 sudo docker volume create --name=neo-data
@@ -80,7 +80,7 @@ docker run -v neo-data:/usr/src/app --name=neo-node -d \
       -v $HOME/.neo/db.json:/usr/src/app/db.json \
       -v $HOME/.neo/datas:/usr/src/app/datas \
       -v $HOME/.neo/logs:/usr/src/app/logs \
-      unibtc/neo:$VERSION
+      bitsler/neo:$VERSION
 EOL
 
 cat >/usr/bin/neo-rm <<'EOL'
@@ -96,7 +96,7 @@ function uninstall() {
   sudo docker rm neo-node
   sudo rm -rf ~/docker/volumes/neo-data ~/.neo /usr/bin/neo-cli
   sudo docker volume rm neo-data
-  sudo docker image rm unibtc/neo:latest
+  sudo docker image rm bitsler/neo:latest
   echo "Successfully removed"
   sudo rm -- "$0"
 }
