@@ -18,7 +18,6 @@
   "dependencies": {
     "@bitsler/neo-address": "^1.0.4",
     "@cityofzion/neon-js": "^4.8.1",
-    "@devnodes/logger-client": "^1.1.2",
     "@unibtc/circularqueue": "^1.0.0",
     "app-module-path": "^2.2.0",
     "big.js": "^5.2.2",
