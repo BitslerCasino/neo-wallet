@@ -22,6 +22,7 @@ module.exports = {
     },
     "max_memory_restart": "1G",
     "log_date_format": "YYYY-MM-DDTHH:mm:ssZ",
+    "node_args": "-r esm",
     "time": true
   }]
 };

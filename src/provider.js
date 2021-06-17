@@ -6,8 +6,8 @@ const mainnet = path.resolve(__dirname, "mainnet.json")
 const rpcProvider = {}
 const PING_TIMEOUT_OVERRIDE = 5000
 const rpcNodes = async () => {
-  const nodes = await fs.readFile(mainnet);
-  return nodes.toString()
+  const nodes = await fs.readJSON(mainnet);
+  return nodes
 }
 
 const pingNode = ({ url }) =>

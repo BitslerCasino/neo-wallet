@@ -47,7 +47,7 @@ export default class Neo {
         this.logger.info(`Connecting to ${this.rpcProvider}`)
         this.neoWeb = new rpc.RPCClient(this.rpcProvider);
         this.neoApi = this.neoscanProvider;
-        this.neoEvents = this.notificationProvider;
+        // this.neoEvents = this.notificationProvider;
       }
     } catch (e) {
       console.error(e);
@@ -505,7 +505,7 @@ export default class Neo {
       } else {
         this.logger.info("Fully synced! Listening for new blocks...")
         synced = true;
-        this.listenNewBlocks();
+        // this.listenNewBlocks();
       }
     } catch (e) {
       this.logger.error(e);
