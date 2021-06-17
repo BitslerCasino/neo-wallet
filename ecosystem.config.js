@@ -3,7 +3,6 @@ module.exports = {
     "name": "neo-wallet",
     "script": "main.js",
     "exec_mode": "fork",
-    "instances": 1,
     "autorestart": true,
     "watch": false,
     "max_memory_restart": "2G",
@@ -15,7 +14,6 @@ module.exports = {
     "name": "neo-provider-updater",
     "script": "./src/updateProviders.js",
     "exec_mode": "fork",
-    "instances": 1,
     "autorestart": true,
     "env": {
       "RESTART": "15"
